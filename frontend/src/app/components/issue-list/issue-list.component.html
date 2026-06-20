@@ -1,0 +1,60 @@
+@if (issues.length === 0) {
+  <div class="empty-state">
+    <div class="empty-icon">✓</div>
+    <p>{{ emptyMessage }}</p>
+  </div>
+} @else {
+  <ul class="issue-list">
+    @for (issue of issues; track trackIssue($index, issue)) {
+      <li class="issue-card" [ngClass]="severityClass(issue.severity)">
+        <div class="issue-header">
+          <div class="issue-badges">
+            <span class="badge severity">{{ issue.severity }}</span>
+            <span class="badge type">{{ typeLabel(issue.type) }}</span>
+          </div>
+        </div>
+
+        <h4 class="issue-title">{{ displayTitle(issue) }}</h4>
+
+        @if (issue.description) {
+          <p class="issue-explanation">{{ issue.description }}</p>
+        }
+
+        @if (affectedUrl(issue)) {
+          <div class="issue-field">
+            <span class="field-label">Affected URL</span>
+            <a
+              class="affected-url"
+              [href]="affectedUrl(issue)!"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {{ affectedUrl(issue) }}
+            </a>
+          </div>
+        }
+
+        @if (issue.details || issue.source) {
+          <div class="issue-field">
+            <span class="field-label">Technical details</span>
+            @if (issue.details) {
+              <pre class="details">{{ issue.details }}</pre>
+            }
+            @if (issue.source && issue.source !== issue.details) {
+              <p class="source-line">
+                <span>Source</span> {{ issue.source }}
+              </p>
+            }
+          </div>
+        }
+
+        @if (issue.recommendation) {
+          <div class="recommendation">
+            <span class="field-label">Recommended fix</span>
+            <p>{{ issue.recommendation }}</p>
+          </div>
+        }
+      </li>
+    }
+  </ul>
+}

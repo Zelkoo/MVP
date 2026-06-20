@@ -1,0 +1,8 @@
+node_modules
+.git
+*.md
+!README.md
+backend/data
+backend/uploads
+frontend/dist
+frontend/.angular

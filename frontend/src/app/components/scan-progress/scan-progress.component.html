@@ -1,0 +1,21 @@
+<section class="scan-progress card" role="status" aria-live="polite">
+  <div class="progress-header">
+    <div class="pulse-ring"><div class="pulse-dot"></div></div>
+    <div>
+      <h2>Analyzing website</h2>
+      @if (url) {
+        <p class="target-url">{{ url }}</p>
+      }
+      <p class="hint">Playwright is visiting the page, collecting console errors, network failures, accessibility warnings, and screenshots. This can take up to a minute.</p>
+    </div>
+  </div>
+
+  <ol class="steps">
+    @for (step of steps; track step; let index = $index) {
+      <li [class.done]="index < activeStep()" [class.active]="index === activeStep()">
+        <span class="step-marker">{{ index < activeStep() ? '✓' : index + 1 }}</span>
+        <span>{{ step }}</span>
+      </li>
+    }
+  </ol>
+</section>

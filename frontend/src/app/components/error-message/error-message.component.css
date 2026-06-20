@@ -1,0 +1,18 @@
+.error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-left: 4px solid var(--critical);
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  color: #991b1b;
+}
+
+.error strong {
+  display: block;
+  margin-bottom: 0.35rem;
+}
+
+.error p {
+  margin: 0;
+  font-size: 0.95rem;
+}

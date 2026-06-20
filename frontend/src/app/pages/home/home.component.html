@@ -1,0 +1,75 @@
+<section class="hero">
+  <h1>Site Scan</h1>
+  <p class="subtitle">
+    Secondary full-site analysis — console errors, accessibility checks, multi-page crawl, and technical QA scoring.
+  </p>
+  <p class="secondary-note">
+    Looking for flow tests?
+    <a routerLink="/">Go to Scenarios →</a>
+  </p>
+</section>
+
+<section class="card permission-warning">
+  <strong>Permission required</strong>
+  <p>Only scan public websites you own or have permission to test.</p>
+</section>
+
+<section class="card scan-form">
+  <label for="url">Website URL</label>
+  <div class="input-row">
+    <input
+      id="url"
+      type="url"
+      [(ngModel)]="url"
+      placeholder="https://example.com"
+      [disabled]="loading"
+      (keyup.enter)="analyze()"
+    />
+    <button type="button" class="btn primary" (click)="analyze()" [disabled]="loading">
+      {{ loading ? 'Analyzing...' : 'Run site scan' }}
+    </button>
+  </div>
+</section>
+
+@if (loading) {
+  <app-scan-progress [url]="url.trim()" />
+}
+
+@if (error && !loading) {
+  <app-error-message [message]="error" />
+}
+
+@if (scan && !loading) {
+  <app-scan-summary-panel [scan]="scan" />
+
+  <section class="card results">
+    <div class="results-header">
+      <h2>Quick findings</h2>
+      @if (scan.id) {
+        <button type="button" class="btn secondary" (click)="viewDetails()">Open Full Report</button>
+      }
+    </div>
+
+    @if (screenshots().length > 0) {
+      <h3>Screenshots</h3>
+      <app-screenshot-gallery [screenshots]="screenshots()" />
+    }
+
+    @for (category of categories; track category.id) {
+      @if (categoryIssues(category).length > 0) {
+        <app-issue-category-section
+          [category]="category"
+          [issues]="categoryIssues(category)"
+        />
+      }
+    }
+  </section>
+}
+
+<section class="card hint">
+  <p>
+    Previous site scans are saved automatically.
+    <a routerLink="/history">View scan history →</a>
+  </p>
+</section>
+

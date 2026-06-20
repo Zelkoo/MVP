@@ -1,0 +1,38 @@
+{
+  "token": "3b2bd97f-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+  "url": "https://example.com",
+  "finalUrl": "https://example.com/",
+  "title": "Example Domain",
+  "summary": "Quality score: 100/100. No issues found across 1 page — the site looks good from a basic frontend QA perspective.",
+  "score": 100,
+  "status": "completed",
+  "createdAt": "2026-06-20 12:00:00",
+  "criticalCount": 0,
+  "warningCount": 0,
+  "infoCount": 0,
+  "pagesCrawled": 1,
+  "desktopScreenshotUrl": "/uploads/screenshots/desktop-example.png",
+  "mobileScreenshotUrl": "/uploads/screenshots/mobile-example.png",
+  "pages": [
+    {
+      "order": 0,
+      "url": "https://example.com",
+      "finalUrl": "https://example.com/",
+      "title": "Example Domain",
+      "statusCode": 200,
+      "issueCount": 0
+    }
+  ],
+  "issues": [
+    {
+      "type": "console-error",
+      "severity": "critical",
+      "message": "Console error detected",
+      "label": "Console Error",
+      "description": "A JavaScript error was logged in the browser console.",
+      "recommendation": "Open DevTools, reproduce the issue, then fix the script error causing the failure.",
+      "details": "TypeError: Cannot read properties of undefined",
+      "affectedUrl": "https://example.com/app.js"
+    }
+  ]
+}

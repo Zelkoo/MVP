@@ -1,0 +1,188 @@
+<section class="page-header">
+  <div>
+    <a routerLink="/history" class="back-link">← Back to history</a>
+    <h1>Scan Report</h1>
+  </div>
+  <a routerLink="/" class="btn secondary">New Scan</a>
+</section>
+
+@if (loading) {
+  <app-loading message="Loading scan details..." />
+}
+
+@if (error) {
+  <app-error-message [message]="error" />
+}
+
+@if (scan && !loading) {
+  <app-scan-summary-panel [scan]="scan" />
+
+  @if (scan.publicToken) {
+    <section class="card share-panel">
+      <div class="share-panel-header">
+        <div>
+          <h3>Client report</h3>
+          <p class="section-note">
+            Share a read-only report with no internal IDs — suitable for clients and stakeholders.
+          </p>
+        </div>
+        <div class="share-actions">
+          <button type="button" class="btn secondary" (click)="copyPublicLink()">Copy public report link</button>
+          <button type="button" class="btn secondary" (click)="openPublicReport()">View public report</button>
+          <button type="button" class="btn primary" (click)="printPublicReport()">Print / Save as PDF</button>
+        </div>
+      </div>
+      @if (shareMessage) {
+        <p class="share-feedback" role="status">{{ shareMessage }}</p>
+      }
+      @if (publicReportUrl(); as link) {
+        <p class="share-link">{{ link }}</p>
+      }
+    </section>
+  }
+
+  @if (relatedScans.length > 0) {
+    <section class="card compare-panel">
+      <div class="compare-panel-header">
+        <div>
+          <h3>Compare with previous scans</h3>
+          <p class="section-note">
+            {{ relatedScans.length }} earlier scan{{ relatedScans.length === 1 ? '' : 's' }} for
+            {{ scanDomain() }}.
+          </p>
+        </div>
+        @if (previousScan(); as previous) {
+          <a [routerLink]="compareLink(previous)" class="btn primary">Compare with previous scan</a>
+        }
+      </div>
+
+      <ul class="related-scan-list">
+        @for (related of relatedScans; track related.id) {
+          <li class="related-scan-item">
+            <div class="related-scan-main">
+              <strong>{{ formatDate(related.createdAt) }}</strong>
+              <span class="related-url">{{ related.url }}</span>
+            </div>
+            <div class="related-scan-meta">
+              <span>Score {{ related.score ?? '—' }}</span>
+              <span>{{ related.issueCount ?? related.issues?.length ?? 0 }} issues</span>
+              <a [routerLink]="compareLink(related)" class="compare-link">Compare</a>
+            </div>
+          </li>
+        }
+      </ul>
+    </section>
+  }
+
+  @if (isPartialScan()) {
+    <section class="alert-banner partial" role="status">
+      <strong>Partial scan results</strong>
+      <p>
+        The scan ended early or some pages could not be analyzed. Review the saved findings below —
+        data for successfully crawled pages is still available.
+      </p>
+    </section>
+  }
+
+  <div class="report-grid">
+    <section class="card screenshots-panel">
+      <div class="section-heading">
+        <h3>Screenshots</h3>
+        <p class="section-note">Captured from the first crawled page only.</p>
+      </div>
+      <app-screenshot-gallery [screenshots]="screenshots()" />
+    </section>
+
+    @if (hasCrawlPages()) {
+      <section class="card pages-panel">
+        <div class="section-heading">
+          <h3>Pages analyzed</h3>
+          <p class="section-note">{{ scan.pages?.length }} internal page(s) on this domain.</p>
+        </div>
+        <ul class="pages-list">
+          @for (page of scan.pages; track page.id ?? page.order) {
+            <li class="page-row" [class.failed]="page.status === 'failed'">
+              <div class="page-row-main">
+                <span class="page-index">Page {{ page.order + 1 }}</span>
+                <strong>{{ pageLabel(page) }}</strong>
+                <a
+                  class="page-link"
+                  [href]="page.finalUrl || page.url"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {{ page.url }}
+                </a>
+              </div>
+              <div class="page-row-meta">
+                <span>HTTP {{ page.statusCode ?? '—' }}</span>
+                <span>{{ page.loadDurationMs != null ? page.loadDurationMs + ' ms' : '—' }}</span>
+                <span>{{ (page.issues || []).length }} issues</span>
+              </div>
+              @if (page.error) {
+                <p class="page-error">{{ page.error }}</p>
+              }
+            </li>
+          }
+        </ul>
+      </section>
+    }
+  </div>
+
+  <section class="findings-header">
+    <h2>Findings</h2>
+    <p>Grouped by category. Use filters to narrow console, network, accessibility, and SEO issues.</p>
+  </section>
+
+  <app-issue-filters
+    [filters]="filters"
+    [totalCount]="allIssues().length"
+    [filteredCount]="filteredIssues().length"
+    (filtersChange)="onFiltersChange($event)"
+  />
+
+  @if (isCleanScan()) {
+    <section class="empty-state card success">
+      <div class="empty-icon">✓</div>
+      <h3>No issues found</h3>
+      <p>
+        This scan did not detect console errors, failed requests, broken links, accessibility warnings,
+        performance flags, or SEO basics issues across {{ stats().pagesCrawled }} page(s).
+      </p>
+    </section>
+  } @else if (noMatchingIssues()) {
+    <section class="empty-state card">
+      <div class="empty-icon">⌕</div>
+      <h3>No issues match your filters</h3>
+      <p>Try clearing filters or searching for a different keyword.</p>
+      <button type="button" class="btn secondary" (click)="onFiltersChange({ severity: 'all', type: 'all', search: '' })">
+        Clear filters
+      </button>
+    </section>
+  } @else {
+    @if (siteWideIssues().length > 0) {
+      <section class="card site-wide">
+        <h3>Scan warnings</h3>
+        <p class="section-note">These apply to the overall scan rather than a single page.</p>
+        <app-issue-list [issues]="siteWideIssues()" emptyMessage="No scan warnings." />
+      </section>
+    }
+
+    @for (category of categories; track category.id) {
+      @if (categoryIssues(category).length > 0) {
+        <app-issue-category-section
+          [category]="category"
+          [issues]="categoryIssues(category)"
+        />
+      }
+    }
+
+    @if (visibleCategoryCount() === 0 && siteWideIssues().length === 0) {
+      <section class="empty-state card">
+        <div class="empty-icon">⌕</div>
+        <h3>No categorized issues match your filters</h3>
+        <p>Adjust the severity, type, or search filters to see more results.</p>
+      </section>
+    }
+  }
+}

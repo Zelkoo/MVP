@@ -1,0 +1,57 @@
+<section class="page-header">
+  <div>
+    <h1>Site Scan History</h1>
+    <p class="subtitle">Previous full-site technical scans. For flow tests, see <a routerLink="/">Scenarios</a>.</p>
+  </div>
+  <a routerLink="/site-scans" class="btn secondary">New Site Scan</a>
+</section>
+
+@if (loading) {
+  <app-loading message="Loading scan history..." />
+}
+
+@if (error) {
+  <app-error-message [message]="error" />
+}
+
+@if (!loading && !error) {
+  @if (scans.length === 0) {
+    <section class="empty-state card">
+      <div class="empty-icon">📋</div>
+      <h2>No scan history yet</h2>
+      <p>
+        Run your first website analysis to generate a scored QA report with screenshots,
+        console errors, accessibility checks, and multi-page findings.
+      </p>
+      <a routerLink="/" class="btn primary">Analyze a Website</a>
+    </section>
+  } @else {
+    <div class="scan-list">
+      @for (scan of scans; track scan.id) {
+        <a class="card scan-item" [routerLink]="['/scans', scan.id]">
+          <div class="scan-item-top">
+            <app-score-badge [score]="displayScore(scan)" />
+            <div class="scan-copy">
+              <div class="scan-item-header">
+                <h2>{{ scan.title || 'Untitled page' }}</h2>
+                <span class="status-badge" [class.failed]="scan.status === 'failed'" [class.partial]="scan.status === 'partial'">
+                  {{ scan.status || 'completed' }}
+                </span>
+              </div>
+              <p class="url">{{ scan.url }}</p>
+              <p class="summary">{{ scan.summary }}</p>
+            </div>
+          </div>
+
+          <div class="meta-row">
+            <span>{{ formatDate(scan.createdAt) }}</span>
+            <span>{{ scan.pagesCrawled ?? 1 }} page(s)</span>
+            <span>{{ stats(scan).criticalCount }} critical</span>
+            <span>{{ stats(scan).warningCount }} warnings</span>
+            <span>{{ stats(scan).totalIssues }} issues</span>
+          </div>
+        </a>
+      }
+    </div>
+  }
+}

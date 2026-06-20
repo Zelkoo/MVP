@@ -1,0 +1,134 @@
+<section class="page-header">
+  <div>
+    <a [routerLink]="comparison ? ['/scans', comparison.current.id!] : ['/history']" class="back-link">← Back to report</a>
+    <h1>Scan Comparison</h1>
+    @if (comparison) {
+      <p class="page-subtitle">{{ comparison.current.url }}</p>
+    }
+  </div>
+</section>
+
+@if (loading) {
+  <app-loading message="Loading comparison..." />
+}
+
+@if (error) {
+  <app-error-message [message]="error" />
+}
+
+@if (comparison && !loading) {
+  <section class="verdict-banner card" [ngClass]="comparison.verdict">
+    <div>
+      <p class="eyebrow">Overall change</p>
+      <h2>{{ comparison.verdictLabel }}</h2>
+      <p class="verdict-copy">
+        @if (comparison.verdict === 'improved') {
+          The latest scan scored higher with fewer or resolved issues compared to the previous run.
+        } @else if (comparison.verdict === 'worsened') {
+          The latest scan scored lower or introduced more issues than the previous run.
+        } @else {
+          The score and issue set are effectively the same between these two scans.
+        }
+      </p>
+    </div>
+    <span class="verdict-badge">{{ comparison.verdictLabel }}</span>
+  </section>
+
+  <section class="card score-compare">
+    <h3>Score</h3>
+    <div class="score-row">
+      <div class="score-block">
+        <span class="label">Previous</span>
+        <app-score-badge [score]="comparison.previousScore" />
+        <span class="date">{{ formatDate(comparison.previous.createdAt) }}</span>
+      </div>
+
+      <div class="score-diff" [ngClass]="scoreDiffClass()">
+        <span class="label">Difference</span>
+        <strong>{{ scoreDiffLabel() }}</strong>
+      </div>
+
+      <div class="score-block current">
+        <span class="label">Current</span>
+        <app-score-badge [score]="comparison.currentScore" />
+        <span class="date">{{ formatDate(comparison.current.createdAt) }}</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h3>Issue summary</h3>
+    <dl class="summary-grid">
+      <div>
+        <dt>New issues</dt>
+        <dd class="negative">{{ comparison.newIssues.length }}</dd>
+      </div>
+      <div>
+        <dt>Resolved issues</dt>
+        <dd class="positive">{{ comparison.resolvedIssues.length }}</dd>
+      </div>
+      <div>
+        <dt>Unchanged issues</dt>
+        <dd>{{ comparison.unchangedIssues.length }}</dd>
+      </div>
+      <div>
+        <dt>Score change</dt>
+        <dd [ngClass]="scoreDiffClass()">{{ scoreDiffLabel() }} pts</dd>
+      </div>
+    </dl>
+  </section>
+
+  <section class="card">
+    <h3>Failed requests</h3>
+    <dl class="summary-grid">
+      <div>
+        <dt>New failed requests</dt>
+        <dd class="negative">{{ comparison.newFailedRequests.length }}</dd>
+      </div>
+      <div>
+        <dt>Resolved failed requests</dt>
+        <dd class="positive">{{ comparison.resolvedFailedRequests.length }}</dd>
+      </div>
+      <div>
+        <dt>Unchanged failed requests</dt>
+        <dd>{{ comparison.unchangedFailedRequests.length }}</dd>
+      </div>
+    </dl>
+  </section>
+
+  @if (comparison.newIssues.length > 0) {
+    <section class="card compare-section">
+      <h3>New issues ({{ comparison.newIssues.length }})</h3>
+      <p class="section-note">Present in the current scan but not in the previous scan.</p>
+      <app-issue-list [issues]="comparison.newIssues" emptyMessage="No new issues." />
+    </section>
+  }
+
+  @if (comparison.resolvedIssues.length > 0) {
+    <section class="card compare-section resolved">
+      <h3>Resolved issues ({{ comparison.resolvedIssues.length }})</h3>
+      <p class="section-note">Present in the previous scan but no longer detected.</p>
+      <app-issue-list [issues]="comparison.resolvedIssues" emptyMessage="No resolved issues." />
+    </section>
+  }
+
+  @if (comparison.unchangedIssues.length > 0) {
+    <section class="card compare-section">
+      <h3>Unchanged issues ({{ comparison.unchangedIssues.length }})</h3>
+      <p class="section-note">Matched by type, affected URL, and message/details.</p>
+      <app-issue-list [issues]="comparison.unchangedIssues" emptyMessage="No unchanged issues." />
+    </section>
+  }
+
+  @if (
+    comparison.newIssues.length === 0 &&
+    comparison.resolvedIssues.length === 0 &&
+    comparison.unchangedIssues.length === 0
+  ) {
+    <section class="empty-state card">
+      <div class="empty-icon">✓</div>
+      <h3>No issues in either scan</h3>
+      <p>Both scans completed with a clean issue list for this domain.</p>
+    </section>
+  }
+}

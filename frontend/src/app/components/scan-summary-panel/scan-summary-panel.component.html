@@ -1,0 +1,70 @@
+<section class="report-header" [ngClass]="healthClass()">
+  <div class="header-main">
+    <div class="header-score">
+      <app-score-badge [score]="displayScore()" />
+      <p class="score-caption">{{ healthLabel() }}</p>
+    </div>
+
+    <div class="header-copy">
+      <p class="eyebrow">Scan Report</p>
+      <h2>{{ scan.title || 'Website analysis' }}</h2>
+      @if (scan.summary) {
+        <p class="summary-text">{{ scan.summary }}</p>
+      }
+
+      <dl class="header-meta">
+        <div class="meta-item wide">
+          <dt>URL</dt>
+          <dd>
+            <a [href]="scan.url" target="_blank" rel="noopener noreferrer">{{ scan.url }}</a>
+          </dd>
+        </div>
+        <div class="meta-item wide">
+          <dt>Final URL</dt>
+          <dd>
+            @if (scan.finalUrl) {
+              <a [href]="scan.finalUrl" target="_blank" rel="noopener noreferrer">{{ scan.finalUrl }}</a>
+            } @else {
+              —
+            }
+          </dd>
+        </div>
+        <div class="meta-item">
+          <dt>Scan date</dt>
+          <dd>{{ formatDate(scan.createdAt) }}</dd>
+        </div>
+        <div class="meta-item">
+          <dt>Score</dt>
+          <dd>{{ displayScore() }}/100</dd>
+        </div>
+        <div class="meta-item">
+          <dt>Pages scanned</dt>
+          <dd>{{ stats().pagesCrawled }}</dd>
+        </div>
+        <div class="meta-item">
+          <dt>Total issues</dt>
+          <dd>{{ stats().totalIssues }}</dd>
+        </div>
+      </dl>
+    </div>
+
+    <span class="status-badge" [class.failed]="scan.status === 'failed'" [class.partial]="scan.status === 'partial'">
+      {{ scan.status || 'completed' }}
+    </span>
+  </div>
+
+  <div class="severity-summary" aria-label="Issue counts by severity">
+    <div class="severity-stat critical">
+      <span class="value">{{ stats().criticalCount }}</span>
+      <span class="label">Critical</span>
+    </div>
+    <div class="severity-stat warning">
+      <span class="value">{{ stats().warningCount }}</span>
+      <span class="label">Warnings</span>
+    </div>
+    <div class="severity-stat info">
+      <span class="value">{{ stats().infoCount }}</span>
+      <span class="label">Info</span>
+    </div>
+  </div>
+</section>

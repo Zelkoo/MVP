@@ -1,0 +1,27 @@
+<div class="stats-grid" aria-label="Scan issue summary">
+  <div class="stat critical">
+    <span class="value">{{ stats().criticalCount }}</span>
+    <span class="label">Critical</span>
+    <span class="hint">Fix first — likely user-facing bugs</span>
+  </div>
+  <div class="stat warning">
+    <span class="value">{{ stats().warningCount }}</span>
+    <span class="label">Warnings</span>
+    <span class="hint">Should be addressed soon</span>
+  </div>
+  <div class="stat info">
+    <span class="value">{{ stats().infoCount }}</span>
+    <span class="label">Info</span>
+    <span class="hint">Minor improvements</span>
+  </div>
+  <div class="stat">
+    <span class="value">{{ stats().failedRequestsCount }}</span>
+    <span class="label">Failed requests</span>
+    <span class="hint">Network assets that did not load</span>
+  </div>
+  <div class="stat">
+    <span class="value">{{ stats().brokenLinksCount }}</span>
+    <span class="label">Broken links</span>
+    <span class="hint">Dead or error links on the page</span>
+  </div>
+</div>

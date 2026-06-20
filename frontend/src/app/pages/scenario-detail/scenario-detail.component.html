@@ -1,0 +1,64 @@
+<section class="page-header">
+  <div>
+    <a routerLink="/" class="back-link">← Back to flows</a>
+    <h1>{{ scenario?.name || 'Flow' }}</h1>
+  </div>
+  @if (scenario && !loading) {
+    <button type="button" class="btn primary" (click)="run()" [disabled]="running">
+      {{ running ? 'Running flow...' : 'Run flow' }}
+    </button>
+  }
+</section>
+
+@if (loading) {
+  <app-loading message="Loading flow..." />
+}
+
+@if (error) {
+  <app-error-message [message]="error" />
+}
+
+@if (scenario && !loading) {
+  <section class="card">
+    <dl class="meta-grid">
+      <div>
+        <dt>Type</dt>
+        <dd>{{ typeLabel(scenario.type) }}</dd>
+      </div>
+      <div>
+        <dt>Start URL</dt>
+        <dd><a [href]="scenario.startUrl" target="_blank" rel="noopener noreferrer">{{ scenario.startUrl }}</a></dd>
+      </div>
+      @if (flowSteps().length > 0) {
+        <div>
+          <dt>Steps</dt>
+          <dd>{{ flowSteps().length }}</dd>
+        </div>
+      }
+    </dl>
+  </section>
+
+  @if (flowSteps().length > 0) {
+    <section class="card">
+      <h3>Recorded steps</h3>
+      <ol class="flow-preview">
+        @for (step of flowSteps(); track $index) {
+          <li>
+            <strong>{{ stepTitle(step) }}</strong>
+            <span>{{ stepSummary(step) }}</span>
+          </li>
+        }
+      </ol>
+    </section>
+  } @else {
+    <section class="card">
+      <h3>Configuration</h3>
+      <pre class="config-preview">{{ scenario.config | json }}</pre>
+    </section>
+  }
+
+  <section class="card permission-warning">
+    <strong>Before you run</strong>
+    <p>Confirm you have permission to test this site. The runner executes each step on the live site with Playwright.</p>
+  </section>
+}

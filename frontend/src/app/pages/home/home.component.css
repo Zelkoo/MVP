@@ -1,0 +1,104 @@
+.hero {
+  margin-bottom: 1.5rem;
+}
+
+.hero h1 {
+  margin: 0 0 0.5rem;
+  font-size: 2rem;
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--text-secondary);
+  max-width: 640px;
+}
+
+.secondary-note {
+  margin: 0.65rem 0 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.permission-warning {
+  margin-bottom: 1rem;
+  border-color: #fde68a;
+  background: #fffbeb;
+}
+
+.permission-warning strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: #92400e;
+}
+
+.permission-warning p {
+  margin: 0;
+  color: #92400e;
+  font-size: 0.92rem;
+}
+
+.scan-form label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.input-row {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.input-row input {
+  flex: 1;
+  min-width: 240px;
+}
+
+.results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.results-header h2 {
+  margin: 0;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+  margin: 0 0 1.25rem;
+}
+
+.stats-grid dt {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin-bottom: 0.2rem;
+}
+
+.stats-grid dd {
+  margin: 0;
+  word-break: break-word;
+  font-size: 0.95rem;
+}
+
+.results h3 {
+  margin: 1.25rem 0 0.75rem;
+}
+
+.hint {
+  margin-top: 1.5rem;
+  background: transparent;
+  border-style: dashed;
+}
+
+.hint p {
+  margin: 0;
+  color: var(--muted);
+}

@@ -1,0 +1,23 @@
+@if (showAppChrome()) {
+  <div class="app-shell">
+    <header class="app-header">
+      <a routerLink="/" class="brand">Flow Test Agent</a>
+      <nav>
+        <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Flows</a>
+        <a routerLink="/site-scans" routerLinkActive="active">Site Scans</a>
+      </nav>
+    </header>
+
+    <main class="app-main">
+      <router-outlet />
+    </main>
+
+    <footer class="app-footer">
+      <small>Scenario-based flow testing for business-critical website journeys</small>
+    </footer>
+  </div>
+} @else {
+  <main class="public-shell">
+    <router-outlet />
+  </main>
+}

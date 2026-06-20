@@ -1,0 +1,17 @@
+{
+  "name": "frontend-qa-agent",
+  "version": "0.4.0",
+  "private": true,
+  "description": "Playwright-powered frontend QA reports for public websites",
+  "scripts": {
+    "start": "docker compose up --build",
+    "docker": "docker compose up --build",
+    "docker:down": "docker compose down",
+    "docker:detached": "docker compose up --build -d",
+    "install:all": "npm install --prefix backend && npm install --prefix frontend",
+    "dev:backend": "npm run dev --prefix backend",
+    "dev:frontend": "npm start --prefix frontend",
+    "build:frontend": "npm run build --prefix frontend",
+    "audit": "npm run audit --prefix backend"
+  }
+}

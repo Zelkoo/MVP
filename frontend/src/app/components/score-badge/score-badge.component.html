@@ -1,0 +1,17 @@
+<div class="score-badge" [ngClass]="cssClass()" [attr.aria-label]="'Quality score ' + score + ' out of 100, ' + label()">
+  <svg viewBox="0 0 120 120" class="score-ring" aria-hidden="true">
+    <circle class="ring-bg" cx="60" cy="60" r="54"></circle>
+    <circle
+      class="ring-fill"
+      cx="60"
+      cy="60"
+      r="54"
+      [style.stroke-dashoffset]="ringOffset()"
+    ></circle>
+  </svg>
+  <div class="score-value">
+    <strong>{{ score }}</strong>
+    <span>/100</span>
+    <small>{{ label() }}</small>
+  </div>
+</div>

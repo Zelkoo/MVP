@@ -1,0 +1,13 @@
+<section class="category-section card">
+  <div class="category-header">
+    <div>
+      <h3>{{ category.title }} <span class="count">({{ issues.length }})</span></h3>
+      <p class="category-description">{{ category.description }}</p>
+    </div>
+  </div>
+
+  <app-issue-list
+    [issues]="issues"
+    [emptyMessage]="'No ' + category.title.toLowerCase() + ' detected.'"
+  />
+</section>

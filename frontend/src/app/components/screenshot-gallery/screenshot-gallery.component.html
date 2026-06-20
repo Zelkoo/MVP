@@ -1,0 +1,50 @@
+@if (screenshots.length === 0) {
+  <div class="empty-state">
+    <div class="empty-icon">📷</div>
+    <p>No screenshots available for this scan.</p>
+  </div>
+} @else {
+  <div class="gallery">
+    @for (shot of screenshots; track shot.src) {
+      <article class="shot-card">
+        <button type="button" class="shot-preview" (click)="open(shot)" [attr.aria-label]="'Preview ' + shot.label">
+          <img [src]="shot.src" [alt]="shot.label + ' screenshot preview'" loading="lazy" />
+        </button>
+        <div class="shot-meta">
+          <div>
+            <p class="shot-label">{{ shot.label }}</p>
+            <p class="shot-hint">Click preview to enlarge</p>
+          </div>
+          <a
+            class="open-tab"
+            [href]="shot.src"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Open in new tab
+          </a>
+        </div>
+      </article>
+    }
+  </div>
+}
+
+@if (preview(); as active) {
+  <div class="lightbox" (click)="close()" role="dialog" aria-modal="true" [attr.aria-label]="active.label">
+    <div class="lightbox-content" (click)="$event.stopPropagation()">
+      <button type="button" class="close-btn" (click)="close()" aria-label="Close preview">×</button>
+      <img [src]="active.src" [alt]="active.label + ' screenshot'" />
+      <div class="lightbox-actions">
+        <p>{{ active.label }}</p>
+        <a
+          class="open-tab"
+          [href]="active.src"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Open in new tab
+        </a>
+      </div>
+    </div>
+  </div>
+}

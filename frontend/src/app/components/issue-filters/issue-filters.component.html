@@ -1,0 +1,59 @@
+<section class="issue-filters card" aria-label="Filter findings">
+  <div class="filters-top">
+    <div>
+      <h3>Filter findings</h3>
+      <p class="filters-meta">
+        Showing <strong>{{ filteredCount }}</strong> of {{ totalCount }} issue{{ totalCount === 1 ? '' : 's' }}
+      </p>
+    </div>
+    @if (isActive()) {
+      <button type="button" class="btn secondary clear-btn" (click)="clear()">Clear filters</button>
+    }
+  </div>
+
+  <div class="filters-row">
+    <label class="search-field">
+      <span class="field-label">Search</span>
+      <input
+        type="search"
+        [ngModel]="filters.search"
+        (ngModelChange)="update({ search: $event })"
+        placeholder="Search message, URL, details..."
+        aria-label="Search issues"
+      />
+    </label>
+
+    <label class="select-field">
+      <span class="field-label">Issue type</span>
+      <select
+        [ngModel]="filters.type"
+        (ngModelChange)="update({ type: $event })"
+        aria-label="Filter by issue type"
+      >
+        <option value="all">All types</option>
+        @for (option of typeOptions; track option.value) {
+          <option [value]="option.value">{{ option.label }}</option>
+        }
+      </select>
+    </label>
+  </div>
+
+  <div class="severity-row">
+    <span class="field-label">Severity</span>
+    <div class="severity-chips" role="group" aria-label="Filter by severity">
+      @for (severity of severities; track severity) {
+        <button
+          type="button"
+          class="chip"
+          [class.active]="filters.severity === severity"
+          [class.severity-critical]="severity === 'critical'"
+          [class.severity-warning]="severity === 'warning'"
+          [class.severity-info]="severity === 'info'"
+          (click)="setSeverity(severity)"
+        >
+          {{ severityLabel(severity) }}
+        </button>
+      }
+    </div>
+  </div>
+</section>

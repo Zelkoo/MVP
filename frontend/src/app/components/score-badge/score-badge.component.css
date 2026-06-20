@@ -1,0 +1,72 @@
+.score-badge {
+  position: relative;
+  width: 132px;
+  height: 132px;
+  flex-shrink: 0;
+}
+
+.score-ring {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.ring-bg {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 10;
+}
+
+.ring-fill {
+  fill: none;
+  stroke: var(--primary);
+  stroke-width: 10;
+  stroke-linecap: round;
+  stroke-dasharray: 339.292;
+  transition: stroke-dashoffset 0.4s ease;
+}
+
+.score-badge.excellent .ring-fill {
+  stroke: #16a34a;
+}
+
+.score-badge.good .ring-fill {
+  stroke: #2563eb;
+}
+
+.score-badge.fair .ring-fill {
+  stroke: #d97706;
+}
+
+.score-badge.poor .ring-fill {
+  stroke: #dc2626;
+}
+
+.score-value {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.score-value strong {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.score-value span {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.score-value small {
+  margin-top: 0.15rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+}

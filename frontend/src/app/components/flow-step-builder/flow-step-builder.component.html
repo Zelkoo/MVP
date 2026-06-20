@@ -1,0 +1,152 @@
+<section class="step-builder">
+  <div class="builder-toolbar">
+    <label>
+      Add step
+      <select [(ngModel)]="newAction" name="newAction">
+        @for (option of stepOptions; track option.action) {
+          <option [value]="option.action">{{ option.label }}</option>
+        }
+      </select>
+    </label>
+    <button type="button" class="btn secondary" (click)="addStep()">Add step</button>
+  </div>
+
+  @if (steps.length === 0) {
+    <div class="empty-steps">
+      <p>No steps yet. Add steps manually or start from a template above.</p>
+    </div>
+  } @else {
+    <ol class="step-list">
+      @for (step of steps; track trackStep($index, step); let i = $index) {
+        <li class="step-card">
+          <div class="step-card-header">
+            <div>
+              <span class="step-index">Step {{ i + 1 }}</span>
+              <strong>{{ actionLabel(step.action) }}</strong>
+            </div>
+            <div class="step-actions">
+              <button type="button" class="icon-btn" (click)="moveStep(i, -1)" [disabled]="i === 0" aria-label="Move up">↑</button>
+              <button type="button" class="icon-btn" (click)="moveStep(i, 1)" [disabled]="i === steps.length - 1" aria-label="Move down">↓</button>
+              <button type="button" class="icon-btn danger" (click)="removeStep(i)" aria-label="Remove step">×</button>
+            </div>
+          </div>
+
+          <label>
+            Step label
+            <input
+              type="text"
+              [ngModel]="step.label"
+              (ngModelChange)="updateStep(i, { label: $event })"
+              [name]="'label-' + step.id"
+            />
+          </label>
+
+          @switch (step.action) {
+            @case ('goto') {
+              <label>
+                URL
+                <input
+                  type="url"
+                  [ngModel]="step.url || startUrl"
+                  (ngModelChange)="updateStep(i, { url: $event })"
+                  [name]="'url-' + step.id"
+                  placeholder="https://yoursite.com/page"
+                />
+              </label>
+            }
+            @case ('click') {
+              <label>
+                CSS selector (optional)
+                <input
+                  type="text"
+                  [ngModel]="step.selector"
+                  (ngModelChange)="updateStep(i, { selector: $event })"
+                  [name]="'selector-' + step.id"
+                  placeholder="button.primary"
+                />
+              </label>
+              <label>
+                Visible text (optional)
+                <input
+                  type="text"
+                  [ngModel]="step.text"
+                  (ngModelChange)="updateStep(i, { text: $event })"
+                  [name]="'text-' + step.id"
+                  placeholder="Get started"
+                />
+              </label>
+            }
+            @case ('fill') {
+              <label>
+                CSS selector
+                <input
+                  type="text"
+                  [ngModel]="step.selector"
+                  (ngModelChange)="updateStep(i, { selector: $event })"
+                  [name]="'selector-' + step.id"
+                />
+              </label>
+              <label>
+                Value
+                <input
+                  type="text"
+                  [ngModel]="step.value"
+                  (ngModelChange)="updateStep(i, { value: $event })"
+                  [name]="'value-' + step.id"
+                />
+              </label>
+            }
+            @case ('waitForText') {
+              <label>
+                Text to wait for
+                <input
+                  type="text"
+                  [ngModel]="step.text"
+                  (ngModelChange)="updateStep(i, { text: $event })"
+                  [name]="'text-' + step.id"
+                />
+              </label>
+              <label>
+                Timeout (ms)
+                <input
+                  type="number"
+                  [ngModel]="step.timeoutMs || 8000"
+                  (ngModelChange)="updateStep(i, { timeoutMs: +$event })"
+                  [name]="'timeout-' + step.id"
+                  min="1000"
+                  max="30000"
+                />
+              </label>
+            }
+            @case ('expectUrlContains') {
+              <label>
+                URL should contain
+                <input
+                  type="text"
+                  [ngModel]="step.value"
+                  (ngModelChange)="updateStep(i, { value: $event })"
+                  [name]="'value-' + step.id"
+                  placeholder="thank-you"
+                />
+              </label>
+            }
+            @case ('expectVisible') {
+              <label>
+                CSS selector
+                <input
+                  type="text"
+                  [ngModel]="step.selector"
+                  (ngModelChange)="updateStep(i, { selector: $event })"
+                  [name]="'selector-' + step.id"
+                />
+              </label>
+            }
+            @case ('screenshot') {
+              <p class="field-hint">Captures the current page when this step runs.</p>
+            }
+          }
+        </li>
+      }
+    </ol>
+  }
+</section>

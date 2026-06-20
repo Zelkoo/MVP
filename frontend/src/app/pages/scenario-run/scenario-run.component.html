@@ -1,0 +1,94 @@
+<section class="page-header">
+  <div>
+    @if (run?.scenarioId) {
+      <a [routerLink]="['/scenarios', run!.scenarioId]" class="back-link">← Back to scenario</a>
+    }
+    <h1>Scenario run result</h1>
+    @if (run?.scenario?.name) {
+      <p class="subtitle">{{ run!.scenario!.name }}</p>
+    }
+  </div>
+  <a routerLink="/" class="btn secondary">All scenarios</a>
+</section>
+
+@if (loading) {
+  <app-loading message="Loading run result..." />
+}
+
+@if (error) {
+  <app-error-message [message]="error" />
+}
+
+@if (run && !loading) {
+  <section class="result-banner card" [ngClass]="statusClass()">
+    <div class="result-main">
+      <app-score-badge [score]="run.score" />
+      <div>
+        <p class="eyebrow">Flow test result</p>
+        <h2>{{ run.status | titlecase }}</h2>
+        <p class="summary">{{ run.result.summary }}</p>
+        <p class="meta">Run at {{ formatDate(run.finishedAt || run.startedAt) }}</p>
+      </div>
+    </div>
+    <span class="status-badge" [ngClass]="statusClass()">{{ run.status }}</span>
+  </section>
+
+  @if (screenshotUrl(); as src) {
+    <section class="card">
+      <h3>Screenshot</h3>
+      <img class="run-screenshot" [src]="src" alt="Scenario run screenshot" />
+    </section>
+  }
+
+  <section class="card">
+    <h3>Steps performed</h3>
+    <ol class="steps-list">
+      @for (step of run.result.steps; track $index) {
+        <li [class.failed]="step.status === 'failed'">
+          <div class="step-top">
+            <div>
+              <strong>{{ step.name }}</strong>
+              @if (step.action) {
+                <span class="step-action">{{ stepActionLabel(step) }}</span>
+              }
+            </div>
+            <div class="step-meta">
+              @if (step.durationMs != null) {
+                <span class="step-duration">{{ formatDuration(step.durationMs) }}</span>
+              }
+              <span class="step-status" [class.failed]="step.status === 'failed'">{{ step.status }}</span>
+            </div>
+          </div>
+          @if (step.message) {
+            <p>{{ step.message }}</p>
+          }
+          @if (stepScreenshot(step); as src) {
+            <img class="step-screenshot" [src]="src" [alt]="'Screenshot for ' + step.name" />
+          }
+        </li>
+      }
+    </ol>
+  </section>
+
+  @if ((run.result.issues || []).length > 0) {
+    <section class="card">
+      <h3>Issues</h3>
+      <app-issue-list [issues]="flowIssues()" emptyMessage="No issues." />
+    </section>
+  }
+
+  @if (consoleIssues().length > 0) {
+    <section class="card">
+      <h3>Console errors (this run only)</h3>
+      <app-issue-list [issues]="consoleIssues()" emptyMessage="No console errors." />
+    </section>
+  }
+
+  @if ((run.result.issues || []).length === 0 && run.status === 'passed') {
+    <section class="empty-state card success">
+      <div class="empty-icon">✓</div>
+      <h3>Flow passed</h3>
+      <p>All steps completed successfully for this business flow.</p>
+    </section>
+  }
+}

@@ -1,0 +1,65 @@
+<section class="page-header">
+  <div>
+    <a routerLink="/" class="back-link">← Back to flows</a>
+    <h1>Build a flow</h1>
+    <p class="subtitle">
+      Define a website user journey step by step — no code required. This is the guided scenario recorder.
+    </p>
+  </div>
+</section>
+
+<section class="card permission-warning">
+  <strong>Test only sites you control</strong>
+  <p>
+    Flows click buttons and fill forms on live sites. Never complete real payments. Only test websites you own or
+    have permission to test.
+  </p>
+</section>
+
+@if (error) {
+  <app-error-message [message]="error" />
+}
+
+<section class="card">
+  <h3>Flow details</h3>
+  <div class="details-grid">
+    <label>
+      Flow name
+      <input type="text" [(ngModel)]="name" name="name" placeholder="Homepage contact form" />
+    </label>
+    <label>
+      Start URL
+      <input type="url" [(ngModel)]="startUrl" name="startUrl" placeholder="https://yoursite.com/contact" />
+    </label>
+  </div>
+</section>
+
+<section class="card">
+  <h3>Start from a template</h3>
+  <p class="section-lead">Load a common business flow, then customize selectors and expectations.</p>
+  <div class="template-grid">
+    @for (template of templates; track template.id) {
+      <button type="button" class="template-card" (click)="applyTemplate(template.id)">
+        <strong>{{ template.name }}</strong>
+        <span>{{ template.description }}</span>
+      </button>
+    }
+  </div>
+</section>
+
+<section class="card">
+  <h3>Flow steps</h3>
+  <p class="section-lead">Add, remove, and reorder steps. Each step runs in Playwright during the test.</p>
+  <app-flow-step-builder
+    [steps]="steps"
+    [startUrl]="startUrl"
+    (stepsChange)="onStepsChange($event)"
+  />
+</section>
+
+<section class="form-actions card">
+  <button type="button" class="btn primary" (click)="save()" [disabled]="saving">
+    {{ saving ? 'Saving...' : 'Save flow' }}
+  </button>
+  <a routerLink="/" class="btn secondary">Cancel</a>
+</section>

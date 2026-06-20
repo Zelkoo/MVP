@@ -1,0 +1,67 @@
+<section class="hero">
+  <h1>Flow Tests</h1>
+  <p class="subtitle">
+    Build and run business-critical website flows without code — contact forms, CTAs, checkout smoke tests, and more.
+  </p>
+</section>
+
+<section class="card permission-warning">
+  <strong>Permission required</strong>
+  <p>
+    Only test websites you own or have explicit permission to test. Flows interact with live pages but never complete
+    real payments.
+  </p>
+</section>
+
+<section class="page-actions">
+  <a routerLink="/scenarios/new" class="btn primary">Build a flow</a>
+  <a routerLink="/site-scans" class="btn secondary">Site scan (secondary)</a>
+</section>
+
+@if (loading) {
+  <app-loading message="Loading flows..." />
+}
+
+@if (error) {
+  <app-error-message [message]="error" />
+}
+
+@if (!loading && !error) {
+  @if (scenarios.length === 0) {
+    <section class="empty-state card">
+      <div class="empty-icon">🧭</div>
+      <h2>No flows yet</h2>
+      <p>
+        Use the guided flow builder to define steps like “go to URL”, “fill input”, “click button”, and “expect success
+        text”.
+      </p>
+      <a routerLink="/scenarios/new" class="btn primary">Build your first flow</a>
+    </section>
+  } @else {
+    <div class="scenario-list">
+      @for (scenario of scenarios; track scenario.id) {
+        <a class="card scenario-item" [routerLink]="['/scenarios', scenario.id]">
+          <div class="scenario-item-top">
+            <div>
+              <span class="type-badge">{{ typeLabel(scenario.type) }}</span>
+              <h2>{{ scenario.name }}</h2>
+              <p class="url">{{ scenario.startUrl }}</p>
+              @if (stepCount(scenario) > 0) {
+                <p class="step-count">{{ stepCount(scenario) }} steps</p>
+              }
+            </div>
+            <span class="arrow">→</span>
+          </div>
+          <p class="meta">Created {{ formatDate(scenario.createdAt) }}</p>
+        </a>
+      }
+    </div>
+  }
+}
+
+<section class="card hint">
+  <p>
+    Need a full-site technical scan instead?
+    <a routerLink="/site-scans">Run a site scan →</a>
+  </p>
+</section>
