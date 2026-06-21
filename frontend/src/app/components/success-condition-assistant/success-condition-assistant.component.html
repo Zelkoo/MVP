@@ -1,0 +1,85 @@
+<section class="assistant card-lite">
+  <div class="assistant-top">
+    <div>
+      <p class="eyebrow">Success Condition Assistant</p>
+      <h3>Recommended success checks</h3>
+      <p class="section-lead">
+        We run your flow once in a real browser and suggest reliable ways to know the test worked.
+      </p>
+    </div>
+    <button type="button" class="btn secondary" (click)="analyze()" [disabled]="analyzing || !steps.length">
+      {{ analyzing ? 'Analyzing…' : hasAnalyzed ? 'Re-analyze' : 'Analyze success' }}
+    </button>
+  </div>
+
+  @if (error) {
+    <app-error-message [message]="error" />
+  }
+
+  @if (analyzing) {
+    <app-loading message="Running a dry test and comparing page behavior before and after your key action…" />
+  }
+
+  @if (!analyzing && hasAnalyzed) {
+    @if (triggerStepLabel) {
+      <p class="analysis-note">
+        Compared page behavior around <strong>{{ triggerStepLabel }}</strong>
+        @if (analysisStatus) {
+          <span class="status-tag">{{ analysisStatus }}</span>
+        }
+      </p>
+    }
+
+    @if (beforeScreenshotUrl || afterScreenshotUrl) {
+      <div class="compare-shots">
+        @if (beforeScreenshotUrl; as before) {
+          <figure>
+            <img [src]="before" alt="Page before key action" />
+            <figcaption>Before</figcaption>
+          </figure>
+        }
+        @if (afterScreenshotUrl; as after) {
+          <figure>
+            <img [src]="after" alt="Page after key action" />
+            <figcaption>After</figcaption>
+          </figure>
+        }
+      </div>
+    }
+
+    @if (suggestions.length === 0) {
+      <div class="empty-state">
+        <p>No automatic success checks were detected. Use Customize to add a manual check, or try re-analyzing after adjusting steps.</p>
+      </div>
+    } @else {
+      <div class="suggestion-list">
+        @for (suggestion of suggestions; track suggestion.id) {
+          <label class="suggestion-option" [class.selected]="isSelected(suggestion)">
+            <input
+              type="checkbox"
+              [checked]="isSelected(suggestion)"
+              (change)="toggleSuggestion(suggestion)"
+            />
+            <div class="option-body">
+              <div class="option-top">
+                <strong>{{ suggestion.plainLanguage }}</strong>
+                <span class="confidence-badge" [ngClass]="confidenceClass(suggestion.confidence)">
+                  {{ suggestion.confidence }} confidence
+                </span>
+              </div>
+              <p>{{ suggestion.reason }}</p>
+              @if (showDeveloperDetails && suggestion.developerDetails) {
+                <pre class="dev-details">{{ developerDetailsText(suggestion) }}</pre>
+              }
+            </div>
+          </label>
+        }
+      </div>
+
+      <label class="toggle-line">
+        <input type="checkbox" [(ngModel)]="showDeveloperDetails" name="assistantDevDetails" />
+        Show developer details
+      </label>
+    }
+  }
+</section>

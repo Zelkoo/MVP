@@ -1,0 +1,306 @@
+<section class="page-header">
+  <div>
+    <a routerLink="/flows" class="back-link">← Back to saved tests</a>
+    <h1>Record a flow <span class="experimental-badge">Experimental</span></h1>
+    <p class="subtitle">
+      Assisted recording: click elements on the page preview in order. We build the test steps for you — no selectors
+      required.
+    </p>
+  </div>
+  <div class="header-actions">
+    <a routerLink="/scenarios/new" class="btn secondary">Smart suggestions</a>
+    <a routerLink="/scenarios/new/wizard" class="btn secondary">Guided wizard</a>
+    <a routerLink="/scenarios/new/advanced" class="btn secondary">Advanced builder</a>
+  </div>
+</section>
+
+<section class="card permission-warning">
+  <strong>Test only sites you control</strong>
+  <p>Only test websites you own or have permission to test. Flows interact with live pages but never complete real payments.</p>
+</section>
+
+<section class="card recorder-note">
+  <strong>Assisted recording (MVP)</strong>
+  <p>
+    This is not a live browser extension. Load a page preview, click elements in the order you want to test them, and
+    tell us whether each one should be clicked, filled, or checked for visibility.
+  </p>
+</section>
+
+<section class="wizard-progress card">
+  <div class="progress-meta">
+    <span>Step {{ currentStep }} of {{ phases.length }}</span>
+    <span>{{ progressPercent }}%</span>
+  </div>
+  <div class="progress-bar">
+    <div class="progress-fill" [style.width.%]="progressPercent"></div>
+  </div>
+  <ol class="progress-steps">
+    @for (label of phases; track $index; let i = $index) {
+      <li [class.active]="currentStep === i + 1" [class.complete]="currentStep > i + 1">
+        <span>{{ i + 1 }}. {{ label }}</span>
+      </li>
+    }
+  </ol>
+</section>
+
+@if (error) {
+  <app-error-message [message]="error" />
+}
+
+<section class="wizard-panel card">
+  @switch (currentStep) {
+    @case (1) {
+      <h2>Enter URL and start recording</h2>
+      <p class="panel-lead">Where should this test begin? We'll load a preview you can click on.</p>
+      <div class="setup-grid">
+        <label>
+          Test name
+          <input type="text" [(ngModel)]="flowName" name="flowName" placeholder="Checkout flow recording" />
+        </label>
+        <label>
+          Page URL
+          <input type="url" [(ngModel)]="startUrl" name="startUrl" placeholder="https://yoursite.com" />
+        </label>
+        <div class="setup-action">
+          <button type="button" class="btn primary" (click)="startRecording()" [disabled]="!startUrl.trim()">
+            Record flow
+          </button>
+        </div>
+      </div>
+    }
+
+    @case (2) {
+      <div class="recording-header">
+        <div>
+          <h2>Record actions</h2>
+          <p class="panel-lead">
+            Click elements on the preview in order. After each click, choose what the test should do with that element.
+          </p>
+        </div>
+        <button type="button" class="btn primary" (click)="stopRecording()" [disabled]="!canStopRecording">
+          Stop recording
+        </button>
+      </div>
+
+      <div class="recording-layout">
+        <aside class="timeline card-lite">
+          <h3>Recorded timeline</h3>
+          @if (recordedActions.length === 0) {
+            <p class="timeline-empty">No actions yet. Click an element on the preview to begin.</p>
+          } @else {
+            <ol class="timeline-list">
+              @for (entry of recordedActions; track entry.id; let i = $index) {
+                <li>
+                  <span class="step-index">{{ i + 1 }}</span>
+                  <div class="timeline-body">
+                    <strong>{{ describeRecordedAction(entry) }}</strong>
+                    <span>{{ entry.element.label }}</span>
+                  </div>
+                  <div class="timeline-actions">
+                    <button type="button" class="btn-icon" (click)="moveRecordedAction(i, -1)" [disabled]="i === 0">↑</button>
+                    <button
+                      type="button"
+                      class="btn-icon"
+                      (click)="moveRecordedAction(i, 1)"
+                      [disabled]="i === recordedActions.length - 1"
+                    >
+                      ↓
+                    </button>
+                    <button type="button" class="btn-icon danger" (click)="removeRecordedAction(entry.id)">✕</button>
+                  </div>
+                </li>
+              }
+            </ol>
+          }
+        </aside>
+
+        <div class="preview-column">
+          @if (pendingElement) {
+            <section class="action-prompt card-lite">
+              <h3>What should we do with "{{ pendingElement.label }}"?</h3>
+              <div class="action-options">
+                @for (option of ['click', 'fill', 'expectVisible']; track option) {
+                  <button
+                    type="button"
+                    class="action-option"
+                    [class.selected]="pendingAction === option"
+                    (click)="pendingAction = $any(option)"
+                  >
+                    {{ actionLabel($any(option)) }}
+                  </button>
+                }
+              </div>
+              @if (pendingAction === 'fill') {
+                <label>
+                  Value to type
+                  <input type="text" [(ngModel)]="pendingFillValue" name="pendingFillValue" />
+                </label>
+              }
+              <div class="prompt-actions">
+                <button type="button" class="btn primary" (click)="confirmPendingAction()">Add to timeline</button>
+                <button type="button" class="btn secondary" (click)="cancelPendingAction()">Cancel</button>
+              </div>
+            </section>
+          } @else {
+            <p class="pick-hint">Click the next element you want in your test flow.</p>
+          }
+
+          <app-page-preview-picker
+            [url]="startUrl"
+            [pickingEnabled]="!pendingElement"
+            [forcePickEnabled]="true"
+            [highlightElementIds]="recordedElementIds"
+            (elementSelected)="onElementPicked($event)"
+            (inspectionLoaded)="onPreviewLoaded($event)"
+          />
+        </div>
+      </div>
+    }
+
+    @case (3) {
+      <h2>Define success</h2>
+      <p class="panel-lead">How will you know the recorded flow worked?</p>
+
+      <div class="choice-grid success-grid">
+        @for (option of successOptions; track option.id) {
+          <button
+            type="button"
+            class="choice-card"
+            [class.selected]="successType === option.id"
+            (click)="selectSuccessType(option.id)"
+          >
+            <strong>{{ option.title }}</strong>
+            <span>{{ option.description }}</span>
+          </button>
+        }
+      </div>
+
+      @if (successType === 'url-contains' || successType === 'page-contains-text' || successType === 'network-2xx') {
+        <label class="success-input">
+          {{ successInputLabel() }}
+          <input
+            type="text"
+            [(ngModel)]="successValue"
+            [name]="'success-' + successType"
+            [placeholder]="successPlaceholder()"
+          />
+        </label>
+      }
+
+      @if (successType === 'element-visible') {
+        <div class="slot-banner">
+          <strong>Selected element that proves success</strong>
+          <span>{{ successElement?.label || 'Click an element on the preview below' }}</span>
+        </div>
+        <button type="button" class="btn secondary" (click)="pickingSuccessElement = true">Pick success element</button>
+        @if (pickingSuccessElement) {
+          <app-page-preview-picker
+            [url]="startUrl"
+            [externalInspection]="inspection"
+            [showControls]="false"
+            [compactHeader]="true"
+            [pickingEnabled]="true"
+            [forcePickEnabled]="true"
+            (elementSelected)="onElementPicked($event)"
+          />
+        }
+      }
+
+      <section class="generated-preview card-lite">
+        <h3>Generated steps so far</h3>
+        <ol>
+          @for (entry of recordedActions; track entry.id) {
+            <li>{{ describeRecordedAction(entry) }}</li>
+          }
+        </ol>
+      </section>
+    }
+
+    @case (4) {
+      <h2>Review and run</h2>
+      <p class="panel-lead">Here's the test we built from your recording.</p>
+
+      <div class="review-summary card-lite">
+        <strong>{{ flowName }}</strong>
+        <span>{{ startUrl }}</span>
+        <span>{{ recordedActions.length }} recorded actions</span>
+      </div>
+
+      <app-test-reliability-score
+        [steps]="generatedSteps"
+        [startUrl]="startUrl"
+        [showFactors]="true"
+      />
+
+      <div class="generated-steps">
+        <h3>What this test will do</h3>
+        <ol>
+          @for (step of generatedSteps; track step.id) {
+            <li>
+              <strong>{{ plainStep(step) }}</strong>
+              @if (showDevPreview) {
+                <pre>{{ devStep(step) }}</pre>
+              }
+            </li>
+          }
+        </ol>
+      </div>
+
+      <label class="toggle-line">
+        <input type="checkbox" [(ngModel)]="showDevPreview" name="showDevPreview" />
+        Show developer details
+      </label>
+
+      <div class="run-actions">
+        <button type="button" class="btn primary" (click)="saveAndRun()" [disabled]="saving || running">
+          {{ running ? 'Running test…' : 'Run test now' }}
+        </button>
+        <button type="button" class="btn secondary" (click)="saveOnly()" [disabled]="saving || running">
+          Save without running
+        </button>
+      </div>
+
+      @if (running) {
+        <app-loading message="Running your recorded test…" />
+      }
+
+      @if (runResult && !running) {
+        <section class="run-result card-lite" [ngClass]="runStatusClass()">
+          <div class="run-result-top">
+            <div>
+              <p class="eyebrow">Test result</p>
+              <h3>{{ runResult.status | titlecase }}</h3>
+              <p>{{ runResult.result.summary }}</p>
+            </div>
+            <span class="status-badge" [ngClass]="runStatusClass()">{{ runResult.status }}</span>
+          </div>
+          @if (runScreenshotUrl(); as src) {
+            <img class="run-screenshot" [src]="src" alt="Test result screenshot" />
+          }
+          <h4>Steps performed</h4>
+          <ol class="run-steps">
+            @for (step of runResult.result.steps; track $index) {
+              <li [class.failed]="step.status === 'failed'">
+                <strong>{{ step.name }}</strong>
+                <p>{{ runStepSummary(step) }}</p>
+              </li>
+            }
+          </ol>
+        </section>
+      }
+    }
+  }
+</section>
+
+<section class="wizard-nav card">
+  @if (currentStep > 1 && currentStep < 4) {
+    <button type="button" class="btn secondary" (click)="previousStep()">Back</button>
+  } @else {
+    <span></span>
+  }
+
+  @if (currentStep === 3) {
+    <button type="button" class="btn primary" (click)="nextStep()">Continue to review</button>
+  }
+</section>

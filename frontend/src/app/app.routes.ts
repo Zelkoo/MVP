@@ -1,6 +1,9 @@
 import { Routes } from '@angular/router';
 import { ScenariosComponent } from './pages/scenarios/scenarios.component';
 import { ScenarioFormComponent } from './pages/scenario-form/scenario-form.component';
+import { ScenarioSmartFlowComponent } from './pages/scenario-smart-flow/scenario-smart-flow.component';
+import { ScenarioWizardComponent } from './pages/scenario-wizard/scenario-wizard.component';
+import { ScenarioRecorderComponent } from './pages/scenario-recorder/scenario-recorder.component';
 import { ScenarioDetailComponent } from './pages/scenario-detail/scenario-detail.component';
 import { ScenarioRunComponent } from './pages/scenario-run/scenario-run.component';
 import { HomeComponent } from './pages/home/home.component';
@@ -8,10 +11,21 @@ import { ScanHistoryComponent } from './pages/scan-history/scan-history.componen
 import { ScanDetailComponent } from './pages/scan-detail/scan-detail.component';
 import { ScanCompareComponent } from './pages/scan-compare/scan-compare.component';
 import { PublicReportComponent } from './pages/public-report/public-report.component';
+import { ProjectListComponent } from './pages/project-list/project-list.component';
+import { ProjectDashboardComponent } from './pages/project-dashboard/project-dashboard.component';
+import { MonitoringFlowDetailComponent } from './pages/monitoring-flow-detail/monitoring-flow-detail.component';
+import { CollectionListComponent } from './pages/collection-list/collection-list.component';
+import { CollectionDetailComponent } from './pages/collection-detail/collection-detail.component';
 
 export const routes: Routes = [
-  { path: '', component: ScenariosComponent },
-  { path: 'scenarios/new', component: ScenarioFormComponent },
+  { path: '', component: ScenarioSmartFlowComponent },
+  { path: 'flows', component: ScenariosComponent },
+  { path: 'collections', component: CollectionListComponent },
+  { path: 'collections/:id', component: CollectionDetailComponent },
+  { path: 'scenarios/new', redirectTo: '', pathMatch: 'full' },
+  { path: 'scenarios/new/wizard', component: ScenarioWizardComponent },
+  { path: 'scenarios/new/record', component: ScenarioRecorderComponent },
+  { path: 'scenarios/new/advanced', component: ScenarioFormComponent },
   { path: 'scenarios/:id', component: ScenarioDetailComponent },
   { path: 'scenario-runs/:id', component: ScenarioRunComponent },
   { path: 'site-scans', component: HomeComponent },
@@ -19,5 +33,8 @@ export const routes: Routes = [
   { path: 'report/:token', component: PublicReportComponent },
   { path: 'scans/:id/compare/:previousId', component: ScanCompareComponent },
   { path: 'scans/:id', component: ScanDetailComponent },
+  { path: 'projects', component: ProjectListComponent },
+  { path: 'projects/:id', component: ProjectDashboardComponent },
+  { path: 'monitoring/flows/:id', component: MonitoringFlowDetailComponent },
   { path: '**', redirectTo: '' },
 ];

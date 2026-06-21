@@ -1,22 +1,21 @@
 # Flow Test Agent
 
-**v0.4** — Guided flow builder for no-code website testing, plus legacy scenario types and secondary full-site scans.
+**v0.5** — Smart flow suggestions: analyze a URL and auto-detect business-critical tests.
 
-Define business-critical user journeys step by step (go to URL, click, fill, wait, assert, screenshot) without writing code. Playwright runs each flow and returns pass/fail results with per-step timing, failure screenshots, and recommended fixes. Full-site technical scanning remains available under **Site Scans**.
+Enter a URL. We detect important user flows. You confirm the test. We run it. Contact forms, CTAs, newsletter signup, add-to-cart, and mobile menu patterns are suggested automatically with pre-filled steps.
 
 > Only test websites you own or have explicit permission to test. Checkout scenarios add to cart but **never complete payment**.
 
 ---
 
-## Primary features (v0.4)
+## Primary features (v0.5)
 
-- **Guided flow builder** — add, remove, and reorder steps without code
-- **Step actions** — go to URL, click (selector or text), fill input, wait for text, expect URL contains, expect element visible, take screenshot
-- **Example templates** — contact form, book a call, add to cart, newsletter signup
-- **Generic Playwright runner** — steps stored as JSON; each step returns status, duration, error message, and screenshot on failure
-- **Pass/fail results** — score, steps performed, issues, console errors for the run only
-- **Legacy scenario types** — contact form, CTA link, mobile navigation, broken links, checkout smoke (pre-built runners)
-- **Permission warnings** — built into create/run flows
+- **Smart flow suggestions** — analyze a URL and get suggested tests for contact forms, CTAs, newsletter signup, add-to-cart, checkout, and mobile menu
+- **One-click test creation** — generated steps, plain-English review, success-check picker, run immediately
+- **Guided wizard** — `/scenarios/new/wizard`
+- **Advanced builder** — `/scenarios/new/advanced`
+- **Visual page preview** — Playwright screenshots with element detection
+- **Friendly run results** — plain-language failures with developer details collapsed
 
 ## Secondary features (site scans)
 
@@ -224,7 +223,21 @@ Example:
 }
 ```
 
-Each executed step returns `{ name, action, status, durationMs, message, screenshotPath? }`.
+Each executed step returns `{ name, action, status, durationMs, message, technicalDetails?, screenshotPath? }`.
+
+### Page inspector API
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/page-inspector/inspect` | Open URL in Playwright, capture screenshot, return interactive elements with bounding boxes |
+
+Request:
+
+```json
+{ "url": "https://example.com", "viewport": "desktop" }
+```
+
+Response includes `screenshotPath`, `viewport`, and up to 100 visible interactive elements with recommended selectors and overlay coordinates.
 
 ## Site scan API
 

@@ -1,8 +1,21 @@
 {
+  "/api/analyzer": {
+    "target": "http://localhost:3000",
+    "secure": false,
+    "changeOrigin": true,
+    "timeout": 900000
+  },
+  "/api/test-discovery": {
+    "target": "http://localhost:3000",
+    "secure": false,
+    "changeOrigin": true,
+    "timeout": 900000
+  },
   "/api": {
     "target": "http://localhost:3000",
     "secure": false,
-    "changeOrigin": true
+    "changeOrigin": true,
+    "timeout": 300000
   },
   "/uploads": {
     "target": "http://localhost:3000",

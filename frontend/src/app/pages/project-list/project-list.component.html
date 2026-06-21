@@ -1,0 +1,73 @@
+<section class="hero">
+  <h1>Flow Monitoring</h1>
+  <p class="subtitle">
+    Schedule flows to run automatically and track uptime, failures, and run history over time.
+  </p>
+</section>
+
+<section class="page-actions">
+  <button type="button" class="btn primary" (click)="showForm = !showForm">
+    {{ showForm ? 'Cancel' : 'New project' }}
+  </button>
+  <a routerLink="/" class="btn secondary">Generate tests</a>
+</section>
+
+@if (showForm) {
+  <section class="card create-form">
+    <h2>Create monitoring project</h2>
+    <p class="hint">Group scheduled flows by site or product.</p>
+    <label>
+      Project name
+      <input type="text" [(ngModel)]="form.name" placeholder="Marketing site" />
+    </label>
+    <label>
+      Domain
+      <input type="text" [(ngModel)]="form.domain" placeholder="example.com" />
+    </label>
+    @if (formError) {
+      <p class="form-error">{{ formError }}</p>
+    }
+    <button type="button" class="btn primary" [disabled]="creating" (click)="createProject()">
+      {{ creating ? 'Creating…' : 'Create project' }}
+    </button>
+  </section>
+}
+
+@if (loading) {
+  <app-loading message="Loading projects..." />
+}
+
+@if (error) {
+  <app-error-message [message]="error" />
+}
+
+@if (!loading && !error) {
+  @if (projects.length === 0) {
+    <section class="empty-state card">
+      <div class="empty-icon">📡</div>
+      <h2>No monitoring projects yet</h2>
+      <p>Create a project, add flows from your scenarios, and schedule them to run on a cadence.</p>
+      <button type="button" class="btn primary" (click)="showForm = true">Create your first project</button>
+    </section>
+  } @else {
+    <div class="project-list">
+      @for (project of projects; track project.id) {
+        <a class="card project-item" [routerLink]="['/projects', project.id]">
+          <div class="project-item-top">
+            <div>
+              <h2>{{ project.name }}</h2>
+              <p class="domain">{{ project.domain }}</p>
+            </div>
+            <span class="arrow">→</span>
+          </div>
+          <div class="project-stats">
+            <span>{{ project.stats?.flowCount || 0 }} flows</span>
+            <span>Pass rate {{ passRateLabel(project.stats?.passRate) }}</span>
+            <span>{{ project.stats?.totalRuns || 0 }} runs</span>
+          </div>
+          <p class="meta">Created {{ formatDate(project.createdAt) }}</p>
+        </a>
+      }
+    </div>
+  }
+}

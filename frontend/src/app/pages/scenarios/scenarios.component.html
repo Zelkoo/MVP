@@ -1,67 +1,85 @@
-<section class="hero">
-  <h1>Flow Tests</h1>
-  <p class="subtitle">
-    Build and run business-critical website flows without code — contact forms, CTAs, checkout smoke tests, and more.
-  </p>
-</section>
-
-<section class="card permission-warning">
-  <strong>Permission required</strong>
-  <p>
-    Only test websites you own or have explicit permission to test. Flows interact with live pages but never complete
-    real payments.
-  </p>
-</section>
-
-<section class="page-actions">
-  <a routerLink="/scenarios/new" class="btn primary">Build a flow</a>
-  <a routerLink="/site-scans" class="btn secondary">Site scan (secondary)</a>
+<section class="page-header">
+  <div>
+    <a routerLink="/" class="back-link">← Generate new tests</a>
+    <h1>Saved tests</h1>
+    <p class="subtitle">Previously created flow tests. Generate new ones from any URL on the home page.</p>
+  </div>
+  <a routerLink="/" class="btn primary">Generate tests</a>
 </section>
 
 @if (loading) {
-  <app-loading message="Loading flows..." />
+  <app-loading message="Loading saved tests..." />
 }
 
 @if (error) {
   <app-error-message [message]="error" />
 }
 
+@if (successMessage) {
+  <section class="card success-banner">{{ successMessage }}</section>
+}
+
 @if (!loading && !error) {
   @if (scenarios.length === 0) {
     <section class="empty-state card">
       <div class="empty-icon">🧭</div>
-      <h2>No flows yet</h2>
-      <p>
-        Use the guided flow builder to define steps like “go to URL”, “fill input”, “click button”, and “expect success
-        text”.
-      </p>
-      <a routerLink="/scenarios/new" class="btn primary">Build your first flow</a>
+      <h2>No saved tests yet</h2>
+      <p>Enter a URL on the home page and we'll suggest useful tests for contact forms, CTAs, newsletter signup, and more.</p>
+      <a routerLink="/" class="btn primary">Generate tests from a URL</a>
     </section>
   } @else {
     <div class="scenario-list">
       @for (scenario of scenarios; track scenario.id) {
-        <a class="card scenario-item" [routerLink]="['/scenarios', scenario.id]">
+        <article class="card scenario-item">
           <div class="scenario-item-top">
-            <div>
+            <div class="scenario-main">
               <span class="type-badge">{{ typeLabel(scenario.type) }}</span>
-              <h2>{{ scenario.name }}</h2>
+              <h2 [title]="scenario.name">{{ displayTitle(scenario) }}</h2>
               <p class="url">{{ scenario.startUrl }}</p>
               @if (stepCount(scenario) > 0) {
                 <p class="step-count">{{ stepCount(scenario) }} steps</p>
               }
             </div>
-            <span class="arrow">→</span>
+            <div class="scenario-actions">
+              <a class="btn secondary" [routerLink]="['/scenarios', scenario.id]">Open</a>
+              <button
+                type="button"
+                class="btn secondary danger"
+                [disabled]="deletingId === scenario.id"
+                (click)="openDeleteModal(scenario)"
+              >
+                {{ deletingId === scenario.id ? 'Deleting…' : 'Delete saved test' }}
+              </button>
+            </div>
           </div>
           <p class="meta">Created {{ formatDate(scenario.createdAt) }}</p>
-        </a>
+        </article>
       }
     </div>
   }
 }
 
+@if (pendingDelete) {
+  <div class="modal-backdrop" (click)="closeDeleteModal()">
+    <div class="modal card" (click)="$event.stopPropagation()">
+      <h2>Delete this saved test?</h2>
+      <p>
+        This will remove it from your saved tests. Existing run history will be kept.
+      </p>
+      <p class="delete-target" [title]="pendingDelete.name">{{ displayTitle(pendingDelete) }}</p>
+      <div class="modal-actions">
+        <button type="button" class="btn secondary" (click)="closeDeleteModal()">Cancel</button>
+        <button type="button" class="btn primary danger" [disabled]="deletingId !== null" (click)="confirmDelete()">
+          {{ deletingId ? 'Deleting…' : 'Delete saved test' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
 <section class="card hint">
   <p>
-    Need a full-site technical scan instead?
-    <a routerLink="/site-scans">Run a site scan →</a>
+    Need more control?
+    <a routerLink="/scenarios/new/advanced">Advanced builder →</a>
   </p>
 </section>

@@ -1,64 +1,115 @@
-.step-builder {
-  display: flex;
-  flex-direction: column;
+.flow-builder {
+  display: grid;
+  grid-template-columns: minmax(220px, 260px) minmax(280px, 1fr);
   gap: 1rem;
 }
 
-.builder-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 0.75rem;
+.timeline-panel,
+.editor-panel {
+  min-height: 420px;
 }
 
-.builder-toolbar label {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  font-size: 0.82rem;
-  font-weight: 600;
+.panel-header h3,
+.editor-panel h3 {
+  margin: 0 0 0.25rem;
 }
 
-.builder-toolbar select {
-  min-width: 220px;
-  padding: 0.55rem 0.7rem;
+.panel-header p {
+  margin: 0 0 1rem;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
 }
 
-.empty-steps {
+.empty-steps,
+.empty-editor {
   padding: 1.25rem;
   border: 1px dashed var(--border);
   border-radius: 12px;
   background: var(--muted-bg);
   text-align: center;
-}
-
-.empty-steps p {
-  margin: 0;
   color: var(--muted);
 }
 
-.step-list {
-  list-style: none;
+.empty-steps p,
+.empty-editor p {
   margin: 0;
+}
+
+.timeline-list {
+  list-style: none;
+  margin: 0 0 1rem;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
+  gap: 0.5rem;
 }
 
-.step-card {
+.timeline-item {
+  width: 100%;
+  display: flex;
+  gap: 0.65rem;
+  align-items: flex-start;
+  padding: 0.75rem;
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 1rem;
+  border-radius: 10px;
   background: #fff;
+  text-align: left;
+  cursor: pointer;
 }
 
-.step-card-header {
+.timeline-item.active {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.15);
+  background: #eff6ff;
+}
+
+.step-number {
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 999px;
+  background: var(--muted-bg);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.timeline-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.timeline-copy strong {
+  font-size: 0.88rem;
+}
+
+.timeline-copy span {
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.timeline-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.timeline-toolbar select {
+  width: 100%;
+}
+
+.editor-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
   gap: 1rem;
-  margin-bottom: 0.85rem;
+  margin-bottom: 1rem;
 }
 
 .step-index {
@@ -68,6 +119,12 @@
   letter-spacing: 0.05em;
   color: var(--muted);
   font-weight: 700;
+}
+
+.step-summary {
+  margin: 0.35rem 0 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
 }
 
 .step-actions {
@@ -82,7 +139,6 @@
   border-radius: 8px;
   background: #fff;
   cursor: pointer;
-  font-size: 0.95rem;
 }
 
 .icon-btn:disabled {
@@ -94,28 +150,73 @@
   color: var(--critical);
 }
 
-.step-card label {
+.editor-panel label {
   display: block;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.85rem;
   font-size: 0.82rem;
   font-weight: 600;
 }
 
-.step-card input {
+.editor-panel input {
   display: block;
   width: 100%;
   margin-top: 0.35rem;
   font-weight: 400;
 }
 
+.selected-element {
+  margin-bottom: 0.85rem;
+}
+
+.card-lite {
+  padding: 0.85rem;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  background: #eff6ff;
+}
+
+.card-lite strong {
+  display: block;
+  margin-bottom: 0.2rem;
+}
+
+.card-lite p {
+  margin: 0;
+  color: #1e3a8a;
+  font-size: 0.88rem;
+}
+
 .field-hint {
   margin: 0;
   color: var(--muted);
-  font-size: 0.85rem;
+  font-size: 0.88rem;
+}
+
+.advanced-panel {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.advanced-toggle {
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--primary);
+  margin-bottom: 0.65rem;
+}
+
+@media (max-width: 960px) {
+  .flow-builder {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 640px) {
-  .step-card-header {
+  .editor-header {
     flex-direction: column;
   }
 }

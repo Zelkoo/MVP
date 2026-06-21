@@ -5,11 +5,13 @@ import { ScenarioService } from '../../services/scenario.service';
 import { Scenario, SCENARIO_TYPE_OPTIONS } from '../../models/scenario.model';
 import { LoadingComponent } from '../../components/loading/loading.component';
 import { ErrorMessageComponent } from '../../components/error-message/error-message.component';
+import { TestReliabilityScoreComponent } from '../../components/test-reliability-score/test-reliability-score.component';
+import { formatScenarioDisplayTitle } from '../../utils/scenario-display.util';
 
 @Component({
   selector: 'app-scenario-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink, LoadingComponent, ErrorMessageComponent],
+  imports: [CommonModule, RouterLink, LoadingComponent, ErrorMessageComponent, TestReliabilityScoreComponent],
   templateUrl: './scenario-detail.component.html',
   styleUrl: './scenario-detail.component.css',
 })
@@ -21,6 +23,8 @@ export class ScenarioDetailComponent implements OnInit {
   scenario: Scenario | null = null;
   loading = true;
   running = false;
+  deleting = false;
+  showDeleteModal = false;
   error: string | null = null;
   typeLabels = Object.fromEntries(SCENARIO_TYPE_OPTIONS.map((o) => [o.value, o.label]));
 
@@ -42,6 +46,10 @@ export class ScenarioDetailComponent implements OnInit {
         this.loading = false;
       },
     });
+  }
+
+  displayTitle(): string {
+    return this.scenario ? formatScenarioDisplayTitle(this.scenario) : 'Flow';
   }
 
   typeLabel(type: string): string {
@@ -96,6 +104,35 @@ export class ScenarioDetailComponent implements OnInit {
           return;
         }
         this.error = err.error?.error || 'Scenario run failed.';
+      },
+    });
+  }
+
+  openDeleteModal(): void {
+    this.showDeleteModal = true;
+  }
+
+  closeDeleteModal(): void {
+    this.showDeleteModal = false;
+  }
+
+  confirmDelete(): void {
+    if (!this.scenario?.id || this.deleting) return;
+
+    this.deleting = true;
+    this.scenarioService.deleteScenario(this.scenario.id).subscribe({
+      next: () => {
+        this.deleting = false;
+        this.showDeleteModal = false;
+        if (this.scenario?.collectionId) {
+          this.router.navigate(['/collections', this.scenario.collectionId]);
+          return;
+        }
+        this.router.navigate(['/flows']);
+      },
+      error: (err) => {
+        this.deleting = false;
+        this.error = err.error?.error || 'Failed to delete saved test.';
       },
     });
   }

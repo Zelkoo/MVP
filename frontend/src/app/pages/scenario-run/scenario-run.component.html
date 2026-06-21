@@ -8,7 +8,7 @@
       <p class="subtitle">{{ run!.scenario!.name }}</p>
     }
   </div>
-  <a routerLink="/" class="btn secondary">All scenarios</a>
+  <a routerLink="/flows" class="btn secondary">Saved tests</a>
 </section>
 
 @if (loading) {
@@ -40,6 +40,14 @@
     </section>
   }
 
+  @if (videoUrl(); as video) {
+    <section class="card">
+      <h3>Test recording</h3>
+      <p class="hint">Browser recording of this test run.</p>
+      <video class="run-video" [src]="video" controls playsinline preload="metadata"></video>
+    </section>
+  }
+
   <section class="card">
     <h3>Steps performed</h3>
     <ol class="steps-list">
@@ -59,8 +67,51 @@
               <span class="step-status" [class.failed]="step.status === 'failed'">{{ step.status }}</span>
             </div>
           </div>
-          @if (step.message) {
-            <p>{{ step.message }}</p>
+          @if (step.message || step.status === 'passed') {
+            <p class="step-message">{{ stepSummary(step) }}</p>
+          }
+          @if (step.selectorSuggestion) {
+            <p class="selector-suggestion">{{ step.selectorSuggestion.message }}</p>
+          }
+          @if (step.status === 'failed' && step.consoleErrors?.length) {
+            <div class="step-console">
+              <strong>Console errors during this step</strong>
+              <ul>
+                @for (entry of step.consoleErrors; track $index) {
+                  <li>{{ entry }}</li>
+                }
+              </ul>
+            </div>
+          }
+          @if (hasSelectorAttempts(step)) {
+            <button type="button" class="dev-toggle" (click)="toggleDevDetails($index)">
+              {{ devDetailsOpen($index) ? 'Hide' : 'Show' }} developer details
+            </button>
+            @if (devDetailsOpen($index)) {
+              @if (step.attempts?.length) {
+                <ol class="attempt-list">
+                  @for (attempt of step.attempts!; track attempt.strategy + attempt.selector) {
+                    <li [class.failed]="attempt.status === 'failed'">
+                      <strong>{{ attempt.strategy }}</strong> — {{ attempt.selector }}
+                      <span>{{ attempt.status }}</span>
+                      @if (attempt.error) {
+                        <em>{{ attempt.error }}</em>
+                      }
+                    </li>
+                  }
+                </ol>
+              }
+              @if (step.technicalDetails) {
+                <pre class="dev-details">{{ step.technicalDetails }}</pre>
+              }
+            }
+          } @else if (step.technicalDetails) {
+            <button type="button" class="dev-toggle" (click)="toggleDevDetails($index)">
+              {{ devDetailsOpen($index) ? 'Hide' : 'Show' }} developer details
+            </button>
+            @if (devDetailsOpen($index)) {
+              <pre class="dev-details">{{ step.technicalDetails }}</pre>
+            }
           }
           @if (stepScreenshot(step); as src) {
             <img class="step-screenshot" [src]="src" [alt]="'Screenshot for ' + step.name" />

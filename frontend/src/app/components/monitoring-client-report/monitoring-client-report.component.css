@@ -1,0 +1,135 @@
+.client-report {
+  margin-bottom: 1rem;
+}
+
+.client-report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.client-report h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1.15rem;
+}
+
+.report-meta,
+.chart-caption,
+.report-empty {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.report-error {
+  margin: 0;
+  color: var(--critical);
+}
+
+.flow-status-list {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.flow-status-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 0.5rem;
+  background: #f9fafb;
+  border: 1px solid var(--border);
+}
+
+.flow-status-list li strong {
+  font-size: 0.95rem;
+}
+
+.flow-status-list li span {
+  color: var(--muted);
+  font-size: 0.9rem;
+  text-align: right;
+}
+
+.flow-status-list li.passed span {
+  color: #15803d;
+}
+
+.flow-status-list li.recovered span {
+  color: #0369a1;
+}
+
+.flow-status-list li.failed span {
+  color: var(--critical);
+}
+
+.report-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.summary-label {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pass-rate {
+  font-size: 1.5rem;
+}
+
+.recent-runs-chart {
+  display: flex;
+  align-items: end;
+  gap: 3px;
+  height: 56px;
+  padding: 0.35rem 0;
+  border-top: 1px solid var(--border);
+}
+
+.run-bar {
+  flex: 1;
+  min-width: 4px;
+  max-width: 12px;
+  border-radius: 2px 2px 0 0;
+  height: 100%;
+  background: #d1d5db;
+}
+
+.run-bar.passed {
+  background: #22c55e;
+  height: 100%;
+}
+
+.run-bar.failed,
+.run-bar.error {
+  background: #ef4444;
+  height: 55%;
+}
+
+.run-bar.warning {
+  background: #f59e0b;
+  height: 70%;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .client-report {
+    box-shadow: none;
+    border: none;
+  }
+}

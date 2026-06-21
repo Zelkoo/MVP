@@ -1,0 +1,55 @@
+<section class="client-report card">
+  @if (loading) {
+    <app-loading message="Loading client report..." />
+  }
+
+  @if (error) {
+    <p class="report-error">{{ error }}</p>
+  }
+
+  @if (report && !loading) {
+    <div class="client-report-header">
+      <div>
+        <h2>Client report for {{ report.domain }}</h2>
+        <p class="report-meta">Updated {{ formatDate(report.generatedAt) }}</p>
+      </div>
+      <button type="button" class="btn secondary no-print" (click)="printReport()">Print / Save as PDF</button>
+    </div>
+
+    @if (report.flows.length === 0) {
+      <p class="report-empty">No monitored flows yet. Add flows to generate a client report.</p>
+    } @else {
+      <ul class="flow-status-list">
+        @for (flow of report.flows; track flow.id) {
+          <li [class]="flowStatusClass(flow.status)">
+            <strong>{{ flow.name }}</strong>
+            <span>{{ flow.statusLabel }}</span>
+          </li>
+        }
+      </ul>
+
+      <div class="report-summary-row">
+        <div>
+          <span class="summary-label">Pass rate</span>
+          <strong class="pass-rate">{{ passRateLabel() }}</strong>
+        </div>
+        <div>
+          <span class="summary-label">Last {{ report.recentRunCount }} runs</span>
+        </div>
+      </div>
+
+      @if (report.recentRuns.length > 0) {
+        <div class="recent-runs-chart" [attr.aria-label]="'Last ' + report.recentRunCount + ' runs'">
+          @for (run of report.recentRuns; track run.startedAt + run.flowName) {
+            <div
+              class="run-bar"
+              [ngClass]="runBarClass(run.status)"
+              [title]="run.flowName + ' · ' + run.status + ' · ' + formatDate(run.startedAt)"
+            ></div>
+          }
+        </div>
+        <p class="chart-caption">Green = passed · Red = failed · Most recent on the right</p>
+      }
+    }
+  }
+</section>

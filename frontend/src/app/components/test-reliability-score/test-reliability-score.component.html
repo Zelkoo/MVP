@@ -1,0 +1,37 @@
+@if (result) {
+  <section class="reliability-panel card-lite" [class.compact]="compact" [ngClass]="scoreClass()">
+    <div class="reliability-top">
+      <div>
+        <p class="eyebrow">Test Reliability Score</p>
+        <h3>{{ result.summary }}</h3>
+        <p class="explanation">{{ result.explanation }}</p>
+      </div>
+      <div class="score-badge-wrap">
+        <span class="score-value">{{ result.score }}</span>
+        <span class="score-badge" [ngClass]="badgeClass()">{{ result.badge }}</span>
+      </div>
+    </div>
+
+    @if (showFactors && result.factors.length) {
+      <div class="factor-grid">
+        @for (factor of result.factors; track factor.key) {
+          <div class="factor-item">
+            <strong>{{ factor.label }}</strong>
+            <span>{{ factor.score }}/100</span>
+          </div>
+        }
+      </div>
+    }
+
+    @if (result.improvements.length) {
+      <div class="improvements">
+        <strong>Recommended improvements</strong>
+        <ul>
+          @for (item of result.improvements; track item) {
+            <li>{{ item }}</li>
+          }
+        </ul>
+      </div>
+    }
+  </section>
+}

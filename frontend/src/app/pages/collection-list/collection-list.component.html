@@ -1,0 +1,67 @@
+<section class="hero">
+  <h1>Test Collections</h1>
+  <p class="subtitle">
+    Each collection groups generated tests for one website — like a test suite for a single domain.
+  </p>
+</section>
+
+<section class="page-actions">
+  <a routerLink="/" class="btn primary">Discover tests</a>
+  <a routerLink="/flows" class="btn secondary">View all saved tests</a>
+</section>
+
+@if (loading) {
+  <app-loading message="Loading collections..." />
+}
+
+@if (error) {
+  <app-error-message [message]="error" />
+}
+
+@if (deleteError) {
+  <app-error-message [message]="deleteError" />
+}
+
+@if (!loading && !error) {
+  @if (collections.length === 0) {
+    <section class="empty-state card">
+      <div class="empty-icon">📁</div>
+      <h2>No collections yet</h2>
+      <p>
+        Run <strong>Discover tests</strong> on a website URL. Tests are grouped automatically by domain.
+      </p>
+      <a routerLink="/" class="btn primary">Discover tests</a>
+    </section>
+  } @else {
+    <div class="collection-list">
+      @for (collection of collections; track collection.id) {
+        <article class="card collection-item">
+          <div class="collection-item-top">
+            <div>
+              <h2>{{ collection.name }}</h2>
+              <p class="domain">{{ collection.domain }}</p>
+            </div>
+            <span class="status-pill" [class]="statusClass(collection.lastRunStatus)">
+              {{ statusLabel(collection.lastRunStatus) }}
+            </span>
+          </div>
+          <div class="collection-stats">
+            <span>{{ collection.testCount || 0 }} tests</span>
+            <span>Last analyzed {{ formatDate(collection.lastAnalyzedAt) }}</span>
+          </div>
+          <div class="collection-actions">
+            <a class="btn primary" [routerLink]="['/collections', collection.id]">Open</a>
+            <button
+              type="button"
+              class="btn secondary danger"
+              [disabled]="deletingId === collection.id"
+              (click)="confirmDelete(collection, $event)"
+            >
+              {{ deletingId === collection.id ? 'Deleting…' : 'Delete' }}
+            </button>
+          </div>
+        </article>
+      }
+    </div>
+  }
+}

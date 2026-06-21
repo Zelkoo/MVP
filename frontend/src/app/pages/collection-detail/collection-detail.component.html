@@ -1,0 +1,729 @@
+@if (loading) {
+  <app-loading message="Loading collection..." />
+}
+
+@if (error) {
+  <app-error-message [message]="error" />
+}
+
+@if (analyzeMessage) {
+  <section class="card success-banner">{{ analyzeMessage }}</section>
+}
+
+@if (showMonitorSuccess && monitorSuccess) {
+  <section class="card monitor-success-banner">
+    <strong>{{ monitorSuccessMessage() }}</strong>
+    @if (monitorSuccess.runJobs.length > 0) {
+      <p class="hint">{{ monitorSuccess.runJobs.length }} initial check{{ monitorSuccess.runJobs.length === 1 ? '' : 's' }} started.</p>
+    }
+    <div class="action-row">
+      <button type="button" class="btn primary" (click)="openMonitoringDashboard()">Open monitoring dashboard</button>
+      <button type="button" class="btn secondary" (click)="dismissMonitorSuccess()">Stay in collection</button>
+    </div>
+  </section>
+}
+
+@if (!loading && collection) {
+  <section class="page-header">
+    <div>
+      <a routerLink="/collections" class="back-link">← All collections</a>
+      <h1>{{ collection.name }}</h1>
+      <p class="subtitle">Test suite for {{ collection.domain }}</p>
+      <p class="meta-line">
+        Start URL: <a [href]="collection.startUrl" target="_blank" rel="noopener">{{ collection.startUrl }}</a>
+      </p>
+      <p class="meta-line">Last analyzed {{ formatDate(collection.lastAnalyzedAt) }}</p>
+    </div>
+    <div class="header-actions">
+      @if (collection.scenarios.length > 0) {
+        <button
+          type="button"
+          class="btn primary"
+          (click)="runAllTests()"
+          [disabled]="runningAll || analyzing || runningTestId !== null || runningSelected"
+        >
+          {{ runningAll ? 'Running all tests…' : 'Run all tests' }}
+        </button>
+        <button
+          type="button"
+          class="btn secondary danger"
+          (click)="deleteAllTests()"
+          [disabled]="deletingAllTests || runningAll"
+        >
+          {{ deletingAllTests ? 'Removing…' : 'Remove all tests' }}
+        </button>
+      }
+      <button type="button" class="btn secondary" (click)="analyzeAgain()" [disabled]="analyzing || runningAll">
+        {{ analyzing ? 'Analyzing…' : 'Analyze again' }}
+      </button>
+      <button type="button" class="btn secondary" (click)="discoverMore()">Generate more tests</button>
+      <button type="button" class="btn secondary danger" (click)="openDeleteModal()">Delete collection</button>
+    </div>
+  </section>
+
+  @if (collection.suiteStats) {
+    <section class="card suite-dashboard">
+      <div class="suite-stat">
+        <span class="suite-stat-label">Last suite run</span>
+        <strong [class]="runStatusClass(collection.suiteStats.lastCollectionRun?.status)">
+          {{ runStatusLabel(collection.suiteStats.lastCollectionRun?.status || 'none') }}
+        </strong>
+      </div>
+      <div class="suite-stat">
+        <span class="suite-stat-label">Pass rate</span>
+        <strong>{{ suiteStatPassRate() != null ? suiteStatPassRate() + '%' : '—' }}</strong>
+      </div>
+      <div class="suite-stat">
+        <span class="suite-stat-label">Last run</span>
+        <strong>{{ formatDate(collection.suiteStats.lastRunAt) }}</strong>
+      </div>
+      <div class="suite-stat">
+        <span class="suite-stat-label">Monitored</span>
+        <strong>{{ collection.suiteStats.monitoredTestCount || 0 }}</strong>
+      </div>
+      <div class="suite-stat">
+        <span class="suite-stat-label">Failing tests</span>
+        <strong>{{ collection.suiteStats.failingTestCount || 0 }}</strong>
+      </div>
+    </section>
+  }
+
+  @if (runningAll) {
+    <section class="card run-all-progress">
+      <app-loading message="Running all tests in this collection. This may take a few minutes…" />
+    </section>
+  }
+
+  @if (activeCollectionRun && isRunActive(activeCollectionRun)) {
+    <section class="card collection-run-progress">
+      <div class="run-progress-header">
+        <strong>Running {{ activeCollectionRun.totalTests }} selected tests</strong>
+        <span class="run-meta">{{ formatElapsed(activeCollectionRun.elapsedMs) }} elapsed</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" [style.width.%]="activeCollectionRun.progressPercent || 0"></div>
+      </div>
+      <div class="run-progress-stats">
+        <span>{{ activeCollectionRun.completedCount || 0 }} / {{ activeCollectionRun.totalTests }} complete</span>
+        <span class="status-passed">{{ activeCollectionRun.passedCount || 0 }} passed</span>
+        <span class="status-failed">{{ activeCollectionRun.failedCount || 0 }} failed</span>
+      </div>
+      @if ((activeCollectionRun.runningTests?.length || 0) > 0) {
+        <p class="running-now">
+          Running:
+          @for (name of activeCollectionRun.runningTests; track name) {
+            <span class="running-pill">{{ name }}</span>
+          }
+        </p>
+      }
+      @if (completedRunItems(activeCollectionRun)?.length) {
+        <ul class="run-list compact live-results">
+          @for (item of completedRunItems(activeCollectionRun); track item.id) {
+            <li>
+              <div>
+                <strong>{{ item.scenarioName }}</strong>
+                @if (item.errorMessage) {
+                  <span class="run-meta">{{ item.errorMessage }}</span>
+                }
+              </div>
+              <span [class]="runStatusClass(item.status)">{{ runStatusLabel(item.status) }}</span>
+              @if (item.scenarioRunId) {
+                <a [routerLink]="['/scenario-runs', item.scenarioRunId]" class="btn-link">View</a>
+              }
+            </li>
+          }
+        </ul>
+      }
+      <button
+        type="button"
+        class="btn secondary"
+        (click)="cancelActiveRun()"
+        [disabled]="cancellingRun"
+      >
+        {{ cancellingRun ? 'Cancelling…' : 'Cancel run' }}
+      </button>
+    </section>
+  }
+
+  @if (activeCollectionRun && !isRunActive(activeCollectionRun)) {
+    <section class="card run-all-summary">
+      <strong>
+        Suite run complete —
+        {{ activeCollectionRun.passedCount }} passed,
+        {{ activeCollectionRun.failedCount }} failed
+        @if (activeCollectionRun.skippedCount) {
+          , {{ activeCollectionRun.skippedCount }} skipped
+        }
+        out of {{ activeCollectionRun.totalTests }} tests
+        @if (passRateForRun(activeCollectionRun) != null) {
+          ({{ passRateForRun(activeCollectionRun) }}% pass rate)
+        }
+        · {{ formatElapsed(activeCollectionRun.durationMs || activeCollectionRun.elapsedMs) }}
+      </strong>
+      @if ((activeCollectionRun.result?.failedTests?.length || 0) > 0) {
+        <p class="hint">Failed tests</p>
+        <ul class="run-list compact">
+          @for (entry of activeCollectionRun.result!.failedTests!; track entry.scenarioId) {
+            <li>
+              <div>
+                <strong>{{ entry.scenarioName }}</strong>
+                @if (entry.errorMessage) {
+                  <span class="run-meta">{{ entry.errorMessage }}</span>
+                }
+              </div>
+              <span [class]="runStatusClass(entry.status)">{{ runStatusLabel(entry.status) }}</span>
+              @if (entry.scenarioRunId) {
+                <a [routerLink]="['/scenario-runs', entry.scenarioRunId]" class="btn-link">View run</a>
+              }
+            </li>
+          }
+        </ul>
+      } @else {
+        <ul class="run-list compact">
+          @for (item of activeCollectionRun.items; track item.id) {
+            <li>
+              <div><strong>{{ item.scenarioName }}</strong></div>
+              <span [class]="runStatusClass(item.status)">{{ runStatusLabel(item.status) }}</span>
+              @if (item.scenarioRunId) {
+                <a [routerLink]="['/scenario-runs', item.scenarioRunId]" class="btn-link">View run</a>
+              }
+            </li>
+          }
+        </ul>
+      }
+    </section>
+  }
+
+  @if (runAllSummary) {
+    <section class="card run-all-summary">
+      <strong>
+        Run complete — {{ runAllSummary.passed }} passed, {{ runAllSummary.failed }} failed out of
+        {{ runAllSummary.total }} tests.
+      </strong>
+      <ul class="run-list compact">
+        @for (entry of runAllSummary.results; track entry.runId) {
+          <li>
+            <div>
+              <strong>{{ entry.name }}</strong>
+              @if (entry.error) {
+                <span class="run-meta">{{ entry.error }}</span>
+              }
+            </div>
+            <span [class]="runStatusClass(entry.status)">{{ runStatusLabel(entry.status) }}</span>
+            @if (entry.runId) {
+              <a [routerLink]="['/scenario-runs', entry.runId]" class="btn-link">View run</a>
+            }
+          </li>
+        }
+      </ul>
+    </section>
+  }
+
+  <nav class="tab-nav">
+    <button type="button" [class.active]="activeTab === 'tests'" (click)="activeTab = 'tests'">
+      Generated tests
+    </button>
+    <button type="button" [class.active]="activeTab === 'runs'" (click)="activeTab = 'runs'">Runs</button>
+    <button type="button" [class.active]="activeTab === 'monitoring'" (click)="activeTab = 'monitoring'">
+      Monitoring
+    </button>
+    <button type="button" [class.active]="activeTab === 'history'" (click)="activeTab = 'history'">
+      Analyzer history
+    </button>
+    <button type="button" [class.active]="activeTab === 'settings'" (click)="activeTab = 'settings'">
+      Settings
+    </button>
+  </nav>
+
+  @if (activeTab === 'tests') {
+    @if (collection.scenarios.length === 0) {
+      <section class="card empty-state">
+        <h2>No generated tests yet</h2>
+        <p>Use Analyze again or Discover tests from the home page to build this collection.</p>
+        <button type="button" class="btn primary" (click)="analyzeAgain()" [disabled]="analyzing">
+          Analyze again
+        </button>
+      </section>
+    } @else {
+      <section class="card batch-toolbar">
+        <div class="batch-actions">
+          <label class="checkbox-row">
+            <input
+              type="checkbox"
+              [checked]="allFilteredSelected()"
+              (change)="toggleSelectAllFiltered($any($event.target).checked)"
+            />
+            Select filtered ({{ selectedScenarioIds().length }} selected)
+          </label>
+          <button
+            type="button"
+            class="btn secondary"
+            (click)="runSelectedTests()"
+            [disabled]="selectedScenarioIds().length === 0 || runningSelected || runningAll"
+          >
+            {{ runningSelected ? 'Running…' : 'Run selected' }}
+          </button>
+          <button
+            type="button"
+            class="btn secondary danger"
+            (click)="deleteSelectedTests()"
+            [disabled]="selectedScenarioIds().length === 0 || deletingSelected"
+          >
+            {{ deletingSelected ? 'Removing…' : 'Delete selected' }}
+          </button>
+          <button
+            type="button"
+            class="btn secondary"
+            (click)="openMonitorModal()"
+            [disabled]="selectedScenarioIds().length === 0"
+          >
+            Monitor selected
+          </button>
+        </div>
+        <div class="tag-row">
+          <input type="text" [(ngModel)]="tagInput" placeholder="Tag selected tests" />
+          <button
+            type="button"
+            class="btn secondary"
+            (click)="tagSelectedTests()"
+            [disabled]="!tagInput.trim() || selectedScenarioIds().length === 0 || taggingSelected"
+          >
+            {{ taggingSelected ? 'Tagging…' : 'Add tag' }}
+          </button>
+        </div>
+        <div class="filter-grid">
+          <label>
+            Page
+            <select [(ngModel)]="filterPage">
+              <option value="">All pages</option>
+              @for (page of availablePages; track page) {
+                <option [value]="page">{{ page === '/' ? 'Home page' : page }}</option>
+              }
+            </select>
+          </label>
+          <label>
+            Type
+            <select [(ngModel)]="filterType">
+              <option value="">All types</option>
+              @for (type of availableTypes; track type) {
+                <option [value]="type">{{ type }}</option>
+              }
+            </select>
+          </label>
+          <label>
+            Safety
+            <select [(ngModel)]="filterSafety">
+              <option value="">All safety levels</option>
+              <option value="safe">Safe</option>
+              <option value="safe-generated-element">Safe (session element)</option>
+              <option value="requires-confirmation">Needs confirmation</option>
+            </select>
+          </label>
+          <label>
+            Last status
+            <select [(ngModel)]="filterLastStatus">
+              <option value="">Any status</option>
+              <option value="passed">Passed</option>
+              <option value="failed">Failed</option>
+              <option value="error">Error</option>
+              <option value="none">Not run yet</option>
+            </select>
+          </label>
+          <label>
+            Monitored
+            <select [(ngModel)]="filterMonitored">
+              <option value="">All tests</option>
+              <option value="monitored">Monitored</option>
+              <option value="not-monitored">Not monitored</option>
+            </select>
+          </label>
+          <label>
+            Min confidence %
+            <input type="number" min="0" max="100" [(ngModel)]="filterReliabilityMin" />
+          </label>
+        </div>
+      </section>
+
+      @if (filteredGroupedTests.length === 0) {
+        <section class="card empty-state">
+          <p>No tests match the current filters.</p>
+        </section>
+      }
+
+      @for (group of filteredGroupedTests; track group.path) {
+        <section class="card page-group">
+          <div class="page-group-header">
+            <h2>{{ group.path === '/' ? 'Home page' : group.path }}</h2>
+            <div class="page-group-actions">
+              <span class="meta-pill">{{ group.tests.length }} tests</span>
+              <button
+                type="button"
+                class="btn secondary"
+                (click)="runGroupTests(group.tests)"
+                [disabled]="runningAll || runningTestId !== null || runningSelected"
+              >
+                Run page tests
+              </button>
+            </div>
+          </div>
+          <div class="test-list">
+            @for (test of group.tests; track test.id) {
+              <article class="test-card">
+                <div class="test-card-top">
+                  <label class="test-select">
+                    <input
+                      type="checkbox"
+                      [checked]="isTestSelected(test)"
+                      (change)="toggleTestSelection(test, $any($event.target).checked)"
+                    />
+                  </label>
+                  <div class="test-card-main">
+                    <h3 [title]="test.name">{{ displayTitle(test) }}</h3>
+                    <p class="test-meta">
+                      {{ categoryLabel(test) }}
+                      @if (test.metadata?.detectedBehavior?.description) {
+                        · {{ test.metadata!.detectedBehavior!.description }}
+                      }
+                    </p>
+                    @if (testTags(test).length > 0) {
+                      <div class="tag-list">
+                        @for (tag of testTags(test); track tag) {
+                          <span class="tag-pill">{{ tag }}</span>
+                        }
+                      </div>
+                    }
+                  </div>
+                  <span class="run-status" [class]="runStatusClass(test.lastRunStatus)">
+                    {{ runStatusLabel(test.lastRunStatus) }}
+                  </span>
+                </div>
+                <div class="test-stats">
+                  <span>Confidence {{ confidenceText(test) }}</span>
+                  <span [class]="safetyClass(test.metadata?.safetyLevel)">
+                    {{ safetyLabel(test.metadata?.safetyLevel) }}
+                  </span>
+                  <span>Source {{ sourcePath(test) }}</span>
+                  <span class="monitor-badge" [class]="monitorBadgeClass(test)">
+                    {{ monitorStatusLabel(test) }}
+                  </span>
+                </div>
+                <div class="test-actions">
+                  <button
+                    type="button"
+                    class="btn primary"
+                    [disabled]="runningTestId === test.id || runningAll || runningSelected"
+                    (click)="runTest(test)"
+                  >
+                    {{ runningTestId === test.id ? 'Running…' : 'Run' }}
+                  </button>
+                  <a class="btn secondary" [routerLink]="['/scenarios', test.id]">Edit</a>
+                  <button type="button" class="btn secondary" (click)="toggleTestSelection(test, true); openMonitorModal()">
+                    Monitor
+                  </button>
+                  <button
+                    type="button"
+                    class="btn secondary danger"
+                    [disabled]="deletingTestId === test.id || deletingAllTests"
+                    (click)="deleteTest(test)"
+                  >
+                    {{ deletingTestId === test.id ? 'Removing…' : 'Remove from collection' }}
+                  </button>
+                </div>
+              </article>
+            }
+          </div>
+        </section>
+      }
+    }
+  }
+
+  @if (activeTab === 'runs') {
+    @if (activeCollectionRun && isRunActive(activeCollectionRun)) {
+      <section class="card collection-run-progress">
+        <div class="run-progress-header">
+          <strong>Suite run in progress</strong>
+          <span class="run-meta">{{ formatElapsed(activeCollectionRun.elapsedMs) }}</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" [style.width.%]="activeCollectionRun.progressPercent || 0"></div>
+        </div>
+        <div class="run-progress-stats">
+          <span>{{ activeCollectionRun.completedCount || 0 }} / {{ activeCollectionRun.totalTests }}</span>
+          <span class="status-passed">{{ activeCollectionRun.passedCount || 0 }} passed</span>
+          <span class="status-failed">{{ activeCollectionRun.failedCount || 0 }} failed</span>
+        </div>
+      </section>
+    }
+
+    <section class="card">
+      <h2>Collection runs</h2>
+      @if (loadingCollectionRuns) {
+        <app-loading message="Loading runs…" />
+      } @else if (collectionRuns.length === 0) {
+        <p class="hint">No suite runs yet. Select tests and run them from the Generated tests tab.</p>
+      } @else {
+        <ul class="run-list collection-runs-list">
+          @for (run of collectionRuns; track run.id) {
+            <li>
+              <div>
+                <strong>{{ formatDate(run.finishedAt || run.startedAt) }}</strong>
+                <span class="run-meta">
+                  {{ run.totalTests }} tests · {{ formatElapsed(run.durationMs || run.elapsedMs) }}
+                  @if (passRateForRun(run) != null) {
+                    · {{ passRateForRun(run) }}% pass
+                  }
+                </span>
+              </div>
+              <span [class]="runStatusClass(run.status)">{{ runStatusLabel(run.status) }}</span>
+              <span class="run-meta">{{ run.passedCount }}/{{ run.totalTests }} passed</span>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
+    <section class="card">
+      <h2>Recent individual runs</h2>
+      @if (recentRuns().length === 0) {
+        <p class="hint">No runs yet. Run a test from the Generated tests tab.</p>
+      } @else {
+        <ul class="run-list">
+          @for (entry of recentRuns(); track entry.test.id) {
+            <li>
+              <div>
+                <strong>{{ entry.test.name }}</strong>
+                <span class="run-meta">{{ formatDate(entry.at) }}</span>
+              </div>
+              <span [class]="runStatusClass(entry.status)">{{ runStatusLabel(entry.status) }}</span>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+  }
+
+  @if (activeTab === 'monitoring') {
+    <section class="card">
+      <h2>Monitor this collection</h2>
+      <p class="hint">
+        Select tests on the Generated tests tab, then choose a schedule to create monitored flows for this domain.
+      </p>
+      <div class="action-row">
+        <button type="button" class="btn primary" (click)="activeTab = 'tests'">Select tests to monitor</button>
+        <button
+          type="button"
+          class="btn secondary"
+          (click)="openMonitorModal()"
+          [disabled]="selectedScenarioIds().length === 0"
+        >
+          Monitor selected ({{ selectedScenarioIds().length }})
+        </button>
+        <a routerLink="/projects" class="btn secondary">Open monitoring dashboard</a>
+      </div>
+    </section>
+  }
+
+  @if (activeTab === 'history') {
+    <section class="card">
+      <h2>Analyzer history</h2>
+      @if ((collection.analyzerHistory?.length || 0) === 0) {
+        <p class="hint">No analyzer runs recorded yet. Run Analyze again to start history.</p>
+      } @else {
+        <ul class="history-list">
+          @for (run of collection.analyzerHistory; track run.id || run.completedAt) {
+            <li>
+              <strong>{{ formatDate(run.completedAt) }}</strong>
+              <span>{{ run.suggestionCount || 0 }} suggestions</span>
+            </li>
+          }
+        </ul>
+      }
+
+      @if (loadingComparison) {
+        <app-loading message="Loading comparison…" />
+      } @else if (analyzerComparison) {
+        <div class="comparison-panel">
+          <h3>Latest vs previous run</h3>
+          <p>
+            {{ analyzerComparison.summary.newCount }} new suggestions,
+            {{ analyzerComparison.summary.removedCount }} removed,
+            {{ analyzerComparison.summary.changedIntentCount }} page intent changes.
+          </p>
+          @if (analyzerComparison.newSuggestions.length > 0) {
+            <strong>New suggestions</strong>
+            <ul>
+              @for (item of analyzerComparison.newSuggestions.slice(0, 8); track item.title + item.sourceUrl) {
+                <li>{{ item.title }} ({{ item.type }})</li>
+              }
+            </ul>
+          }
+          @if (analyzerComparison.changedPageIntents.length > 0) {
+            <strong>Changed page intents</strong>
+            <ul>
+              @for (item of analyzerComparison.changedPageIntents; track item.url) {
+                <li>{{ item.url }}: {{ item.before }} → {{ item.after }}</li>
+              }
+            </ul>
+          }
+          @if (analyzerComparison.pagesNoLongerReachable.length > 0) {
+            <strong>Pages no longer reachable</strong>
+            <ul>
+              @for (url of analyzerComparison.pagesNoLongerReachable; track url) {
+                <li>{{ url }}</li>
+              }
+            </ul>
+          }
+        </div>
+      } @else if ((collection.analyzerHistory?.length || 0) >= 2) {
+        <p class="hint">Run another analysis to compare changes between runs.</p>
+      }
+    </section>
+  }
+
+  @if (activeTab === 'settings') {
+    <section class="card settings-form">
+      <h2>Collection settings</h2>
+      <label>
+        Display name
+        <input type="text" [(ngModel)]="settingsName" />
+      </label>
+      <label>
+        Description
+        <textarea rows="3" [(ngModel)]="settingsDescription"></textarea>
+      </label>
+      <button type="button" class="btn primary" [disabled]="savingSettings" (click)="saveSettings()">
+        {{ savingSettings ? 'Saving…' : 'Save settings' }}
+      </button>
+    </section>
+
+    <section class="card settings-form analyzer-settings">
+      <h2>Analyzer preferences</h2>
+      <p class="hint">These settings influence page scoring, suggestion priority, and business value messaging.</p>
+      <label>
+        Important keywords (comma separated)
+        <input type="text" [(ngModel)]="settingsKeywordsText" placeholder="contact, pricing, booking" />
+      </label>
+      <label>
+        Ignored paths (one per line)
+        <textarea rows="4" [(ngModel)]="settingsIgnoredPathsText" placeholder="/admin&#10;/legacy"></textarea>
+      </label>
+      <label>
+        Preferred test types (comma separated)
+        <input type="text" [(ngModel)]="settingsPreferredTypesText" placeholder="hover-reveal, navigation, dynamic-loading" />
+      </label>
+      <div class="settings-grid">
+        <label>
+          Allowed risk level
+          <select [(ngModel)]="analyzerSettings.allowedRiskLevel">
+            <option value="safe">Safe only</option>
+            <option value="full">Include confirmation-required actions</option>
+          </select>
+        </label>
+        <label>
+          Default max pages
+          <input type="number" min="1" max="25" [(ngModel)]="analyzerSettings.maxPagesDefault" />
+        </label>
+        <label>
+          Default max actions per page
+          <input type="number" min="1" max="50" [(ngModel)]="analyzerSettings.maxActionsDefault" />
+        </label>
+        <label>
+          Monitoring alert email (optional)
+          <input type="email" [(ngModel)]="monitorAlertEmail" placeholder="you@company.com" />
+        </label>
+      </div>
+      <button type="button" class="btn primary" [disabled]="savingAnalyzerSettings" (click)="saveAnalyzerSettings()">
+        {{ savingAnalyzerSettings ? 'Saving…' : 'Save analyzer preferences' }}
+      </button>
+    </section>
+  }
+}
+
+@if (showMonitorModal && collection) {
+  <div class="modal-backdrop" (click)="closeMonitorModal()">
+    <div class="modal card monitor-modal" (click)="$event.stopPropagation()">
+      <h2>Monitor selected tests</h2>
+      <p>
+        {{ selectedScenarioIds().length }} test{{ selectedScenarioIds().length === 1 ? '' : 's' }} selected.
+        @if (selectedAlreadyMonitoredCount() > 0) {
+          {{ selectedAlreadyMonitoredCount() }} already monitored and will be skipped.
+        }
+      </p>
+
+      <div class="monitor-preview">
+        <span class="preview-label">Monitoring project</span>
+        <strong>{{ monitorProjectName() }}</strong>
+        <span class="run-meta">Domain: {{ collection.domain }}</span>
+      </div>
+
+      <label>
+        Schedule
+        <select [(ngModel)]="monitorSchedule">
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+          <option value="every-6-hours">Every 6 hours</option>
+          <option value="manual">Manual only</option>
+        </select>
+      </label>
+      <label>
+        Alert email (optional)
+        <input type="email" [(ngModel)]="monitorAlertEmail" placeholder="you@company.com" />
+        <span class="field-hint">Applied to newly monitored flows. Failure and recovery alerts are sent here.</span>
+      </label>
+      <label class="checkbox-row">
+        <input type="checkbox" [(ngModel)]="monitorRunNow" />
+        Run initial check now
+      </label>
+      <div class="modal-actions">
+        <button type="button" class="btn secondary" (click)="closeMonitorModal()">Cancel</button>
+        <button type="button" class="btn primary" [disabled]="monitoringSelected" (click)="confirmMonitorSelected()">
+          {{ monitoringSelected ? 'Creating…' : 'Start monitoring' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (showDeleteSelectedModal && collection) {
+  <div class="modal-backdrop" (click)="closeDeleteSelectedModal()">
+    <div class="modal card" (click)="$event.stopPropagation()">
+      <h2>Remove selected tests?</h2>
+      <p>
+        Remove {{ selectedScenarioIds().length }} tests from this collection? Run history will be kept.
+      </p>
+      <div class="modal-actions">
+        <button type="button" class="btn secondary" (click)="closeDeleteSelectedModal()">Cancel</button>
+        <button
+          type="button"
+          class="btn primary danger"
+          [disabled]="deletingSelected"
+          (click)="confirmDeleteSelectedTests()"
+        >
+          {{ deletingSelected ? 'Removing…' : 'Remove tests' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (showDeleteModal && collection) {
+  <div class="modal-backdrop" (click)="closeDeleteModal()">
+    <div class="modal card" (click)="$event.stopPropagation()">
+      <h2>Delete collection?</h2>
+      <p>
+        Delete this collection and hide all generated tests? Monitoring flows will not be deleted unless
+        you explicitly choose that option elsewhere.
+      </p>
+      <label class="checkbox-row">
+        <input type="checkbox" [(ngModel)]="deleteTestsWithCollection" />
+        Also hide all generated tests in this collection
+      </label>
+      <div class="modal-actions">
+        <button type="button" class="btn secondary" (click)="closeDeleteModal()">Cancel</button>
+        <button type="button" class="btn primary danger" [disabled]="deleting" (click)="confirmDeleteCollection()">
+          {{ deleting ? 'Deleting…' : 'Delete collection' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

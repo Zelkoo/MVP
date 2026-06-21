@@ -9,6 +9,7 @@ import { ErrorMessageComponent } from '../../components/error-message/error-mess
 import { ScoreBadgeComponent } from '../../components/score-badge/score-badge.component';
 import { IssueListComponent } from '../../components/issue-list/issue-list.component';
 import { formatScanDate } from '../../utils/format.util';
+import { stepResultSummary } from '../../utils/element-target';
 
 @Component({
   selector: 'app-scenario-run',
@@ -31,6 +32,7 @@ export class ScenarioRunComponent implements OnInit {
   run: ScenarioRun | null = null;
   loading = true;
   error: string | null = null;
+  devDetailsOpenSteps = new Set<number>();
 
   ngOnInit(): void {
     const id = Number(this.route.snapshot.paramMap.get('id'));
@@ -58,6 +60,10 @@ export class ScenarioRunComponent implements OnInit {
 
   screenshotUrl(): string | null {
     return this.scenarioService.screenshotUrl(this.run?.screenshotPath);
+  }
+
+  videoUrl(): string | null {
+    return this.scenarioService.videoUrl(this.run?.videoPath);
   }
 
   statusClass(): string {
@@ -95,6 +101,32 @@ export class ScenarioRunComponent implements OnInit {
     if (ms == null) return '';
     if (ms < 1000) return `${ms}ms`;
     return `${(ms / 1000).toFixed(1)}s`;
+  }
+
+  toggleDevDetails(index: number): void {
+    if (this.devDetailsOpenSteps.has(index)) {
+      this.devDetailsOpenSteps.delete(index);
+    } else {
+      this.devDetailsOpenSteps.add(index);
+    }
+  }
+
+  devDetailsOpen(index: number): boolean {
+    return this.devDetailsOpenSteps.has(index);
+  }
+
+  stepSummary(step: ScenarioStep): string {
+    return stepResultSummary({
+      name: step.name,
+      action: step.action,
+      status: step.status,
+      message: step.message,
+      selectorStrategy: step.selectorStrategy,
+    });
+  }
+
+  hasSelectorAttempts(step: ScenarioStep): boolean {
+    return Boolean(step.attempts?.length || step.technicalDetails);
   }
 
   private toIssue(issue: ScenarioIssue): Issue {

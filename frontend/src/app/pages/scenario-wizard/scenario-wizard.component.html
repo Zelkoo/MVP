@@ -1,0 +1,832 @@
+<section class="page-header">
+
+  <div>
+
+    <a routerLink="/" class="back-link">← Generate tests</a>
+
+    <h1>Test this flow</h1>
+
+    <p class="subtitle">Analyze your page, pick a detected test, confirm the details, and run it — mostly automatic.</p>
+
+  </div>
+
+  <div class="header-actions">
+
+    <a routerLink="/scenarios/new" class="btn secondary">Smart suggestions</a>
+
+    <a routerLink="/scenarios/new/record" class="btn secondary">Record flow</a>
+
+    <a routerLink="/scenarios/new/advanced" class="btn secondary">Advanced builder</a>
+
+  </div>
+
+</section>
+
+
+
+<section class="card permission-warning">
+
+  <strong>Test only sites you control</strong>
+
+  <p>Only test websites you own or have permission to test. Flows interact with live pages but never complete real payments.</p>
+
+</section>
+
+
+
+<section class="wizard-progress card">
+
+  <div class="progress-meta">
+
+    <span>Step {{ currentStep }} of {{ wizardSteps.length }}</span>
+
+    <span>{{ progressPercent }}%</span>
+
+  </div>
+
+  <div class="progress-bar">
+
+    <div class="progress-fill" [style.width.%]="progressPercent"></div>
+
+  </div>
+
+  <ol class="progress-steps">
+
+    @for (label of wizardSteps; track $index; let i = $index) {
+
+      <li [class.active]="currentStep === i + 1" [class.complete]="currentStep > i + 1">
+
+        <button type="button" (click)="goToStep(i + 1)" [disabled]="i + 1 >= currentStep">{{ i + 1 }}. {{ label }}</button>
+
+      </li>
+
+    }
+
+  </ol>
+
+</section>
+
+
+
+@if (error) {
+
+  <app-error-message [message]="error" />
+
+}
+
+
+
+@if (analyzing) {
+
+  <app-loading message="Opening the page and detecting forms, buttons, and user flows..." />
+
+}
+
+
+
+<section class="wizard-panel card">
+
+  @switch (currentStep) {
+
+    @case (1) {
+
+      <h2>Enter your page URL</h2>
+
+      <p class="panel-lead">We'll analyze the page and suggest tests you can run with minimal setup.</p>
+
+      <div class="analyze-grid">
+
+        <label>
+
+          Test name (optional)
+
+          <input type="text" [(ngModel)]="flowName" name="flowName" placeholder="Homepage contact form test" />
+
+        </label>
+
+        <label>
+
+          Page URL
+
+          <input type="url" [(ngModel)]="startUrl" name="startUrl" placeholder="https://yoursite.com/contact" />
+
+        </label>
+
+        <div class="analyze-action">
+
+          <button type="button" class="btn primary" (click)="analyzePage()" [disabled]="analyzing || !startUrl.trim()">
+
+            {{ analyzing ? 'Analyzing…' : 'Analyze page' }}
+
+          </button>
+
+        </div>
+
+      </div>
+
+    }
+
+
+
+    @case (2) {
+
+      <h2>Choose a detected test</h2>
+
+      <p class="panel-lead">We found patterns on this page. Pick the test that matches what you want to verify.</p>
+
+
+
+      @if (analysis) {
+
+        <div class="analysis-status card-lite">
+
+          <strong>{{ analysisStatusLabel }}</strong>
+
+          @if (analysis.timing?.loadDurationMs) {
+
+            <span>Loaded in {{ (analysis.timing!.loadDurationMs / 1000).toFixed(1) }}s</span>
+
+          }
+
+        </div>
+
+
+
+        @if (analysis.warnings.length > 0) {
+
+          <div class="warnings-list">
+
+            @for (warning of analysis.warnings; track warning.type + warning.message) {
+
+              <p>{{ warning.message }}</p>
+
+            }
+
+          </div>
+
+        }
+
+      }
+
+
+
+      @if (hasDetectedSuggestions) {
+
+        <div class="suggestion-list">
+
+          @for (suggestion of analysis!.suggestions; track suggestion.id) {
+
+            <button
+
+              type="button"
+
+              class="suggestion-card"
+
+              [class.selected]="selectedSuggestion?.id === suggestion.id"
+
+              (click)="selectSuggestion(suggestion)"
+
+            >
+
+              <div class="suggestion-top">
+
+                <div>
+
+                  <h3>{{ suggestion.title }}</h3>
+
+                  <p>{{ suggestion.description }}</p>
+
+                </div>
+
+                <span class="confidence-badge" [ngClass]="confidenceClass(suggestion.confidenceLabel)">
+
+                  {{ suggestion.confidenceLabel }} confidence
+
+                </span>
+
+              </div>
+
+              <div class="detected-summary">
+
+                <strong>Detected</strong>
+
+                <ul>
+
+                  @for (element of suggestion.detectedElements; track element.selector) {
+
+                    <li>{{ element.label }}</li>
+
+                  }
+
+                </ul>
+
+              </div>
+
+            </button>
+
+          }
+
+        </div>
+
+      } @else {
+
+        <div class="empty-state">
+
+          @if (analysisBlocked) {
+
+            <p>We couldn't read the real page because of bot protection or a loading screen.</p>
+
+          } @else {
+
+            <p>No strong patterns were detected automatically. Pick a manual test type below.</p>
+
+          }
+
+        </div>
+
+      }
+
+
+
+      <div class="manual-fallback">
+
+        <h3>{{ hasDetectedSuggestions ? 'Or choose manually' : 'Choose a test type' }}</h3>
+
+        <div class="choice-grid">
+
+          @for (option of manualOptions; track option.id) {
+
+            <button
+
+              type="button"
+
+              class="choice-card"
+
+              [class.selected]="manualTestType === option.id"
+
+              (click)="selectManualType(option.id)"
+
+            >
+
+              <strong>{{ option.title }}</strong>
+
+              <span>{{ option.description }}</span>
+
+            </button>
+
+          }
+
+        </div>
+
+      </div>
+
+    }
+
+
+
+    @case (3) {
+
+      @if (selectedSuggestion) {
+
+        <h2>Confirm important elements</h2>
+
+        <p class="panel-lead">
+
+          We highlighted the elements involved in this test. Click "Looks good" if they are correct, or replace any
+
+          element that looks wrong.
+
+        </p>
+
+
+
+        <div class="confidence-banner" [ngClass]="confidenceClass(selectedSuggestion.confidenceLabel)">
+
+          <strong>{{ selectedSuggestion.confidenceLabel }} confidence</strong>
+
+          <span>{{ confidenceMessage }}</span>
+
+        </div>
+
+
+
+        <div class="confirm-layout">
+
+          <div class="confirm-elements">
+
+            @for (slot of confirmSlots; track slot.id) {
+
+              <div class="confirm-item" [class.missing]="!slot.element" [class.replacing]="replacingSlotId === slot.id">
+
+                <div>
+
+                  <span>{{ slot.roleLabel }}</span>
+
+                  <strong>{{ slot.element?.label || 'Not matched yet' }}</strong>
+
+                </div>
+
+                <button type="button" class="btn secondary btn-small" (click)="startReplaceSlot(slot)">
+
+                  {{ replacingSlotId === slot.id ? 'Click preview…' : 'Replace' }}
+
+                </button>
+
+              </div>
+
+            }
+
+            @if (replacingSlotId) {
+
+              <button type="button" class="btn secondary btn-small" (click)="cancelReplace()">Cancel replace</button>
+
+            }
+
+          </div>
+
+
+
+          <app-page-preview-picker
+
+            #confirmPreview
+
+            [url]="startUrl"
+
+            [externalInspection]="inspectionPreview"
+
+            [highlightElementIds]="highlightElementIds"
+
+            [showControls]="false"
+
+            [compactHeader]="true"
+
+            [pickingEnabled]="!!replacingSlotId"
+
+            [forcePickEnabled]="!!replacingSlotId"
+
+            (elementSelected)="onConfirmElementSelected($event)"
+
+          />
+
+        </div>
+
+      } @else {
+
+        <h2>Select important elements</h2>
+
+        <p class="panel-lead">Load the preview and click the elements this test should use.</p>
+
+
+
+        @if (activeManualSlot) {
+
+          <div class="slot-banner">
+
+            <strong>{{ activeManualSlot.prompt }}</strong>
+
+            <span>{{ activeManualSlot.helper }}</span>
+
+          </div>
+
+        }
+
+
+
+        <div class="picked-list">
+
+          @for (slot of manualElementSlots; track slot.id) {
+
+            <div class="picked-item" [class.done]="slot.element">
+
+              <span>{{ slot.prompt }}</span>
+
+              <strong>{{ slot.element?.label || 'Not selected yet' }}</strong>
+
+            </div>
+
+          }
+
+        </div>
+
+
+
+        <app-page-preview-picker
+
+          #manualPreview
+
+          [url]="startUrl"
+
+          [pickingEnabled]="!!activeManualSlot"
+
+          [forcePickEnabled]="true"
+
+          (elementSelected)="onManualElementSelected($event)"
+
+          (inspectionLoaded)="onManualPreviewLoaded($event)"
+
+        />
+
+      }
+
+    }
+
+
+
+    @case (4) {
+
+      <h2>Choose success condition</h2>
+
+      <p class="panel-lead">How should we know the test worked? The assistant runs your flow once and recommends reliable checks.</p>
+
+
+
+      @if (selectedSuggestion) {
+
+        <app-success-condition-assistant
+          [startUrl]="startUrl"
+          [steps]="generatedSteps"
+          [viewport]="assistantViewport"
+          (stepsChange)="onAssistantStepsChange($event)"
+        />
+
+        <details class="manual-success-fallback">
+          <summary>Pick a success check manually</summary>
+          <div class="success-options">
+            @for (strategy of successStrategies; track strategy.type + (strategy.value || '')) {
+              <button
+                type="button"
+                class="success-option"
+                [class.selected]="selectedSuccessStrategy?.type === strategy.type && selectedSuccessStrategy?.value === strategy.value"
+                (click)="selectSuccessStrategy(strategy)"
+              >
+                <strong>{{ strategyTitle(strategy) }}</strong>
+                <span>{{ strategyDescription(strategy) }}</span>
+              </button>
+            }
+          </div>
+        </details>
+
+      } @else {
+
+        <div class="choice-grid success-grid">
+
+          @for (option of successOptions; track option.id) {
+
+            <button
+
+              type="button"
+
+              class="choice-card"
+
+              [class.selected]="manualSuccessType === option.id"
+
+              (click)="selectManualSuccessType(option.id)"
+
+            >
+
+              <strong>{{ option.title }}</strong>
+
+              <span>{{ option.description }}</span>
+
+            </button>
+
+          }
+
+        </div>
+
+
+
+        @if (manualSuccessType === 'url-contains' || manualSuccessType === 'page-contains-text' || manualSuccessType === 'network-2xx') {
+
+          <label class="success-input">
+
+            {{ manualSuccessInputLabel() }}
+            <input
+              type="text"
+              [(ngModel)]="manualSuccessValue"
+              [name]="'success-' + manualSuccessType"
+              [placeholder]="manualSuccessPlaceholder()"
+            />
+
+          </label>
+
+        }
+
+
+
+        @if (manualSuccessType === 'element-visible') {
+
+          <div class="slot-banner">
+
+            <strong>Selected element that proves success</strong>
+
+            <span>{{ manualSuccessElement?.label || 'Click an element on the preview below' }}</span>
+
+          </div>
+
+          <app-page-preview-picker
+
+            [url]="startUrl"
+
+            [pickingEnabled]="true"
+
+            [forcePickEnabled]="true"
+
+            (elementSelected)="manualSuccessElement = $event"
+
+          />
+
+        }
+
+      }
+
+    }
+
+
+
+    @case (5) {
+
+      <h2>Review your test</h2>
+
+      <p class="panel-lead">Here's what we'll run, in plain language. Technical details are optional.</p>
+
+
+
+      <div class="review-summary card-lite">
+
+        <strong>{{ flowName || testLabel }}</strong>
+
+        <span>{{ startUrl }}</span>
+
+        <span>{{ testLabel }}</span>
+
+      </div>
+
+
+
+      <app-test-reliability-score
+        [steps]="generatedSteps"
+        [startUrl]="startUrl"
+        [showFactors]="true"
+      />
+
+
+
+      <div class="generated-steps">
+
+        <h3>What this test will do</h3>
+
+        <ol>
+
+          @for (step of generatedSteps; track step.id) {
+
+            <li>
+
+              <strong>{{ plainStep(step) }}</strong>
+
+              @if (showDevPreview) {
+
+                <pre>{{ devStep(step) }}</pre>
+
+              }
+
+            </li>
+
+          }
+
+        </ol>
+
+      </div>
+
+
+
+      <div class="review-toggles">
+
+        <label class="toggle-line">
+
+          <input type="checkbox" [(ngModel)]="showDevPreview" name="showDevPreview" />
+
+          Show developer details
+
+        </label>
+
+        <label class="toggle-line">
+
+          <input type="checkbox" [(ngModel)]="showAdvancedEditor" name="showAdvancedEditor" />
+
+          Edit selected elements (advanced)
+
+        </label>
+
+      </div>
+
+
+
+      @if (showAdvancedEditor) {
+
+        <div class="advanced-editor">
+
+          @for (step of generatedSteps; track step.id; let i = $index) {
+
+            @if (step.action === 'click' || step.action === 'fill' || step.action === 'expectVisible') {
+
+              <label>
+
+                {{ plainStep(step) }} — selected element override
+
+                <input
+
+                  type="text"
+
+                  [ngModel]="step.selector"
+
+                  (ngModelChange)="updateGeneratedStep(i, { selector: $event })"
+
+                  [name]="'selector-' + step.id"
+
+                />
+
+              </label>
+
+            }
+
+          }
+
+        </div>
+
+      }
+
+    }
+
+
+
+    @case (6) {
+
+      <h2>Run your test</h2>
+
+      <p class="panel-lead">We'll save and run this test immediately. Results appear below.</p>
+
+
+
+      <div class="run-summary card-lite">
+
+        <strong>{{ flowName || testLabel }}</strong>
+
+        <span>{{ startUrl }}</span>
+
+        <span>{{ generatedSteps.length }} steps · {{ testLabel }}</span>
+
+      </div>
+
+
+
+      <div class="run-actions">
+
+        <button type="button" class="btn primary" (click)="saveAndRun()" [disabled]="saving || running">
+
+          {{ running ? 'Running test…' : 'Run test now' }}
+
+        </button>
+
+        @if (runResult?.id) {
+
+          <a [routerLink]="['/scenario-runs', runResult!.id]" class="btn secondary">Open full run details</a>
+
+        }
+
+      </div>
+
+
+
+      @if (running) {
+
+        <app-loading message="Running your test in a real browser…" />
+
+      }
+
+
+
+      @if (runResult && !running) {
+
+        <section class="run-result card-lite" [ngClass]="runStatusClass()">
+
+          <div class="run-result-top">
+
+            <div>
+
+              <p class="eyebrow">Test result</p>
+
+              <h3>{{ runResult.status | titlecase }}</h3>
+
+              <p>{{ runResult.result.summary }}</p>
+
+            </div>
+
+            <span class="status-badge" [ngClass]="runStatusClass()">{{ runResult.status }}</span>
+
+          </div>
+
+
+
+          @if (runScreenshotUrl(); as src) {
+
+            <img class="run-screenshot" [src]="src" alt="Test result screenshot" />
+
+          }
+
+
+
+          <h4>Steps performed</h4>
+
+          <ol class="run-steps">
+
+            @for (step of runResult.result.steps; track $index; let i = $index) {
+
+              <li [class.failed]="step.status === 'failed'">
+
+                <div class="step-top">
+
+                  <strong>{{ step.name }}</strong>
+
+                  <span class="step-status" [class.failed]="step.status === 'failed'">{{ step.status }}</span>
+
+                </div>
+
+                @if (step.message || step.status === 'passed') {
+                  <p>{{ runStepSummary(step) }}</p>
+                }
+                @if (step.selectorSuggestion) {
+                  <p class="selector-suggestion">{{ step.selectorSuggestion.message }}</p>
+                }
+                @if (runStepHasDevDetails(step)) {
+                  <button type="button" class="dev-toggle" (click)="toggleDevDetails(i)">
+                    {{ devDetailsVisible(i) ? 'Hide' : 'Show' }} developer details
+                  </button>
+                  @if (devDetailsVisible(i)) {
+                    @if (step.attempts?.length) {
+                      <ol class="attempt-list">
+                        @for (attempt of step.attempts!; track attempt.strategy + attempt.selector) {
+                          <li [class.failed]="attempt.status === 'failed'">
+                            <strong>{{ attempt.strategy }}</strong> — {{ attempt.selector }}
+                            <span>{{ attempt.status }}</span>
+                          </li>
+                        }
+                      </ol>
+                    }
+                    @if (step.technicalDetails) {
+                      <pre class="dev-details">{{ step.technicalDetails }}</pre>
+                    }
+                  }
+                }
+
+                @if (stepScreenshot(step.screenshotPath); as shot) {
+
+                  <img class="step-screenshot" [src]="shot" [alt]="'Screenshot for ' + step.name" />
+
+                }
+
+              </li>
+
+            }
+
+          </ol>
+
+        </section>
+
+      }
+
+    }
+
+  }
+
+</section>
+
+
+
+<section class="wizard-nav card">
+
+  @if (currentStep > 1) {
+
+    <button type="button" class="btn secondary" (click)="previousStep()">Back</button>
+
+  } @else {
+
+    <span></span>
+
+  }
+
+
+
+  @if (currentStep < wizardSteps.length) {
+
+    <button type="button" class="btn primary" (click)="nextStep()">
+
+      {{ currentStep === 1 && !analysis ? 'Analyze page' : 'Continue' }}
+
+    </button>
+
+  }
+
+</section>
+
+

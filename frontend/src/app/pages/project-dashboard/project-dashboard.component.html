@@ -1,0 +1,132 @@
+<section class="page-header">
+  <div>
+    <a routerLink="/projects" class="back-link">← All projects</a>
+    @if (project) {
+      <h1>{{ project.name }}</h1>
+      <p class="subtitle">{{ project.domain }}</p>
+    }
+  </div>
+  @if (project) {
+    <button type="button" class="btn primary" (click)="showAddFlow = !showAddFlow">
+      {{ showAddFlow ? 'Cancel' : 'Add flow' }}
+    </button>
+  }
+</section>
+
+@if (loading) {
+  <app-loading message="Loading project..." />
+}
+
+@if (error) {
+  <app-error-message [message]="error" />
+}
+
+@if (project && !loading) {
+  <section class="stats-grid card">
+    <div class="stat">
+      <span class="stat-label">Flows</span>
+      <strong>{{ project.stats.flowCount }}</strong>
+      <small>{{ project.stats.activeFlowCount }} active</small>
+    </div>
+    <div class="stat">
+      <span class="stat-label">Pass rate</span>
+      <strong>{{ passRateLabel(project.stats.passRate) }}</strong>
+      <small>{{ project.stats.totalRuns }} total runs</small>
+    </div>
+    <div class="stat">
+      <span class="stat-label">Last failure</span>
+      @if (project.stats.lastFailure) {
+        <strong class="failed">{{ project.stats.lastFailure.failureReason || project.stats.lastFailure.status }}</strong>
+        <small>{{ formatDate(project.stats.lastFailure.startedAt) }}</small>
+      } @else {
+        <strong class="passed">None yet</strong>
+        <small>All clear</small>
+      }
+    </div>
+  </section>
+
+  @if (project.flows.length > 0) {
+    <app-monitoring-client-report [projectId]="project.id" />
+  }
+
+  @if (showAddFlow) {
+    <section class="card add-flow-form">
+      <h2>Add flow from scenario</h2>
+      <p class="hint">Import an existing one-time flow test into this monitoring project.</p>
+      <app-scenario-picker
+        [scenarios]="scenarios"
+        [selectedScenarioId]="selectedScenarioId"
+        [projectDomain]="project.domain"
+        (selectedScenarioIdChange)="selectedScenarioId = $event"
+      />
+      @if (addError) {
+        <p class="form-error">{{ addError }}</p>
+      }
+      <button
+        type="button"
+        class="btn primary"
+        [disabled]="addingFlow || !selectedScenarioId"
+        (click)="addFlowFromScenario()"
+      >
+        {{ addingFlow ? 'Adding…' : 'Add to monitoring' }}
+      </button>
+    </section>
+  }
+
+  @if (project.flows.length === 0) {
+    <section class="empty-state card">
+      <h2>No monitored flows yet</h2>
+      <p>Add a flow from your existing scenarios to start scheduled monitoring.</p>
+      <button type="button" class="btn primary" (click)="showAddFlow = true">Add your first flow</button>
+    </section>
+  } @else {
+    <section class="card">
+      <h2>Monitored flows</h2>
+      <div class="flow-table-wrap">
+        <table class="flow-table">
+          <thead>
+            <tr>
+              <th>Flow</th>
+              <th>Schedule</th>
+              <th>Last status</th>
+              <th>Pass rate</th>
+              <th>Last failure</th>
+              <th>Next run</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (flow of project.flows; track flow.id) {
+              <tr>
+                <td>
+                  <a [routerLink]="['/monitoring/flows', flow.id]" class="flow-link">
+                    <strong>{{ flow.name }}</strong>
+                    <span class="url">{{ flow.startUrl }}</span>
+                  </a>
+                  @if (!flow.isActive) {
+                    <span class="inactive-badge">Paused</span>
+                  }
+                </td>
+                <td>{{ scheduleLabel(flow.schedule) }}</td>
+                <td>
+                  <span class="status-pill" [ngClass]="statusClass(lastStatus(flow))">
+                    {{ lastStatus(flow) }}
+                  </span>
+                </td>
+                <td>{{ passRateLabel(flow.stats?.passRate) }}</td>
+                <td>
+                  @if (flow.stats?.lastFailure) {
+                    <span class="failure-text">{{ flow.stats!.lastFailure!.failureReason || flow.stats!.lastFailure!.status }}</span>
+                    <small>{{ formatDate(flow.stats!.lastFailure!.startedAt) }}</small>
+                  } @else {
+                    —
+                  }
+                </td>
+                <td>{{ nextRun(flow) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+}

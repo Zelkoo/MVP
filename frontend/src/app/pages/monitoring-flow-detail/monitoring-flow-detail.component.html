@@ -1,0 +1,171 @@
+<section class="page-header">
+  <div>
+    @if (flow?.project) {
+      <a [routerLink]="['/projects', flow!.project!.id]" class="back-link">← {{ flow!.project!.name }}</a>
+    }
+    @if (flow) {
+      <h1>{{ flow.name }}</h1>
+      <p class="subtitle">{{ flow.startUrl }}</p>
+    }
+  </div>
+  @if (flow) {
+    <button type="button" class="btn primary" [disabled]="running" (click)="runNow()">
+      {{ running ? 'Running…' : 'Run now' }}
+    </button>
+  }
+</section>
+
+@if (loading) {
+  <app-loading message="Loading flow..." />
+}
+
+@if (error) {
+  <app-error-message [message]="error" />
+}
+
+@if (flow && !loading) {
+  <section class="stats-grid card">
+    <div class="stat">
+      <span class="stat-label">Pass rate</span>
+      <strong>{{ passRateLabel(flow.stats?.passRate) }}</strong>
+      <small>{{ flow.stats?.totalRuns || 0 }} runs</small>
+    </div>
+    <div class="stat">
+      <span class="stat-label">Avg duration</span>
+      <strong>{{ formatDuration(flow.stats?.avgDurationMs) }}</strong>
+      <small>Recent average</small>
+    </div>
+    <div class="stat">
+      <span class="stat-label">Last status</span>
+      <strong [ngClass]="statusClass(flow.stats?.lastRun?.status)">
+        {{ flow.stats?.lastRun?.status || '—' }}
+      </strong>
+      <small>{{ formatDate(flow.stats?.lastRun?.startedAt) }}</small>
+    </div>
+    <div class="stat">
+      <span class="stat-label">Next run</span>
+      <strong>{{ flow.schedule === 'manual' ? 'Manual only' : formatDate(flow.nextRunAt) }}</strong>
+      <small>{{ scheduleLabel(flow.schedule) }}</small>
+    </div>
+  </section>
+
+  <section class="card schedule-panel">
+    <h2>Alert settings</h2>
+    <p class="hint">Get email when this flow fails or recovers. Alerts are not repeated on every failed run.</p>
+    <div class="alert-settings-grid">
+      <label>
+        Alert email
+        <input type="email" [(ngModel)]="editAlertEmail" placeholder="you@company.com" />
+      </label>
+      <label>
+        Failure threshold
+        <input type="number" min="1" max="10" [(ngModel)]="editFailureThreshold" />
+      </label>
+      <label class="checkbox-label">
+        <input type="checkbox" [(ngModel)]="editAlertOnFailure" />
+        Alert on failure
+      </label>
+      <label class="checkbox-label">
+        <input type="checkbox" [(ngModel)]="editAlertOnRecovery" />
+        Alert on recovery
+      </label>
+    </div>
+    <p class="last-alert-line">{{ lastAlertLabel() }}</p>
+    <button type="button" class="btn secondary" [disabled]="savingAlerts" (click)="saveAlertSettings()">
+      {{ savingAlerts ? 'Saving…' : 'Save alert settings' }}
+    </button>
+    @if (saveAlertError) {
+      <p class="form-error">{{ saveAlertError }}</p>
+    }
+  </section>
+
+  <section class="card schedule-panel">
+    <h2>Schedule settings</h2>
+    <div class="schedule-row">
+      <label>
+        Schedule
+        <select [(ngModel)]="editSchedule">
+          @for (option of scheduleOptions; track option.value) {
+            <option [value]="option.value">{{ option.label }}</option>
+          }
+        </select>
+      </label>
+      <label class="checkbox-label">
+        <input type="checkbox" [(ngModel)]="editActive" />
+        Active monitoring
+      </label>
+      <button type="button" class="btn secondary" [disabled]="saving" (click)="saveSchedule()">
+        {{ saving ? 'Saving…' : 'Save schedule' }}
+      </button>
+    </div>
+    @if (saveError) {
+      <p class="form-error">{{ saveError }}</p>
+    }
+  </section>
+
+  <section class="card">
+    <h2>Reliability score</h2>
+    <app-test-reliability-score
+      [steps]="flowSteps()"
+      [startUrl]="flow.startUrl"
+      scenarioType="flow"
+      [showFactors]="true"
+    />
+  </section>
+
+  @if (runs.length > 0) {
+    <section class="card">
+      <h2>Run history</h2>
+      <div class="history-chart" aria-hidden="true">
+        @for (bar of chartBars(); track bar.label) {
+          <div class="chart-bar-wrap" [title]="bar.label + ' — ' + bar.status">
+            <div class="chart-bar" [ngClass]="statusClass(bar.status)" [style.height.%]="bar.height"></div>
+          </div>
+        }
+      </div>
+      <p class="chart-legend">{{ passedRuns() }} passed / {{ runs.length }} recent runs</p>
+
+      <div class="run-list">
+        @for (run of runs; track run.id) {
+          <article class="run-item" [ngClass]="statusClass(run.status)">
+            <div class="run-item-top">
+              <div>
+                <strong>{{ run.status | titlecase }}</strong>
+                <p class="run-summary">{{ run.result.summary || run.failureReason || 'No summary' }}</p>
+              </div>
+              <div class="run-meta">
+                <span>{{ formatDuration(run.durationMs) }}</span>
+                <span>{{ formatDate(run.startedAt) }}</span>
+              </div>
+            </div>
+            @if (run.failureReason && run.status !== 'passed') {
+              <p class="failure-reason"><strong>Failure:</strong> {{ run.failureReason }}</p>
+            }
+            @if (screenshotUrl(run.screenshotPath); as src) {
+              <img class="run-screenshot" [src]="src" [alt]="'Screenshot for run ' + run.id" />
+            }
+          </article>
+        }
+      </div>
+    </section>
+  }
+
+  @if (failedRuns().length > 0) {
+    <section class="card">
+      <h2>Recent failures</h2>
+      <div class="failure-list">
+        @for (run of failedRuns(); track run.id) {
+          <article class="failure-item">
+            <div>
+              <strong>{{ formatDate(run.startedAt) }}</strong>
+              <p>{{ run.failureReason || run.result.summary || run.status }}</p>
+            </div>
+            @if (screenshotUrl(run.screenshotPath); as src) {
+              <img class="failure-thumb" [src]="src" alt="Failure screenshot" />
+            }
+          </article>
+        }
+      </div>
+    </section>
+  }
+}

@@ -8,13 +8,35 @@ export type ScenarioType =
 
 export type ScenarioRunStatus = 'passed' | 'failed' | 'partial' | 'error';
 
+export type SelectorStrategy = 'primary' | 'alternative' | 'text' | 'role' | 'aria-label';
+
+export interface SelectorAttempt {
+  strategy: SelectorStrategy | string;
+  selector: string;
+  status: 'passed' | 'failed';
+  error?: string | null;
+}
+
+export interface SelectorSuggestion {
+  message: string;
+  recommendedSelector: string;
+  recommendedStrategy: string;
+  currentSelector?: string | null;
+}
+
 export interface ScenarioStep {
   name: string;
   action?: string;
   status: 'passed' | 'failed';
   message?: string;
+  technicalDetails?: string | null;
   durationMs?: number;
   screenshotPath?: string | null;
+  consoleErrors?: string[];
+  selectorUsed?: string;
+  selectorStrategy?: SelectorStrategy | string;
+  attempts?: SelectorAttempt[];
+  selectorSuggestion?: SelectorSuggestion;
 }
 
 export interface ScenarioIssue {
@@ -41,6 +63,10 @@ export interface Scenario {
   startUrl: string;
   config: Record<string, unknown>;
   createdAt?: string;
+  collectionId?: number | null;
+  sourceUrl?: string | null;
+  generatedBy?: string;
+  metadata?: Record<string, unknown>;
 }
 
 export interface ScenarioRun {
@@ -51,6 +77,7 @@ export interface ScenarioRun {
   startedAt?: string;
   finishedAt?: string;
   screenshotPath?: string | null;
+  videoPath?: string | null;
   result: ScenarioRunResult;
   scenario?: Scenario;
   error?: string;

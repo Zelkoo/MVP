@@ -1,0 +1,140 @@
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.stat-label {
+  color: var(--muted);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.stat strong {
+  font-size: 1.35rem;
+}
+
+.stat small {
+  color: var(--muted);
+}
+
+.stat .passed {
+  color: #15803d;
+}
+
+.stat .failed {
+  color: var(--critical);
+  font-size: 1rem;
+}
+
+.add-flow-form label {
+  display: block;
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+}
+
+.add-flow-form select {
+  display: block;
+  width: 100%;
+  margin-top: 0.35rem;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 1rem;
+  background: #fff;
+}
+
+.form-error {
+  color: var(--critical);
+}
+
+.flow-table-wrap {
+  overflow-x: auto;
+}
+
+.flow-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.flow-table th,
+.flow-table td {
+  text-align: left;
+  padding: 0.75rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.flow-table th {
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.flow-link {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  text-decoration: none;
+  color: inherit;
+}
+
+.flow-link:hover strong {
+  color: var(--primary);
+}
+
+.url {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.inactive-badge {
+  display: inline-block;
+  margin-top: 0.35rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  background: var(--muted-bg);
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.status-pill {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.status-pill.passed {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.status-pill.failed,
+.status-pill.error {
+  background: #fee2e2;
+  color: var(--critical);
+}
+
+.status-pill.warning {
+  background: #fef3c7;
+  color: var(--warning);
+}
+
+.failure-text {
+  display: block;
+  max-width: 220px;
+}
+
+.hint {
+  color: var(--muted);
+}

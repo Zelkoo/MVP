@@ -1,0 +1,857 @@
+<section class="page-header">
+  <div>
+    <h1>Website Test Analyzer</h1>
+    <p class="subtitle">Paste a URL. We explore the site like a cautious QA engineer, discover what can be tested, and suggest flows you can save, run, and monitor.</p>
+    <p class="saved-link"><a routerLink="/flows">View saved tests →</a></p>
+  </div>
+</section>
+
+<section class="card permission-warning">
+  <strong>Test only sites you control</strong>
+  <p>Only test websites you own or have permission to test. Never complete real payments.</p>
+</section>
+
+@if (error) {
+  <app-error-message [message]="error" />
+  @if (discoveryJobId && !discovering) {
+    <section class="card action-row">
+      <button type="button" class="btn primary" (click)="discoverTests()">Retry discovery</button>
+      <a routerLink="/scenarios/new/advanced" class="btn secondary">Advanced builder</a>
+    </section>
+  }
+}
+
+<section class="card analyze-section">
+  <h2>Analyze a website</h2>
+  <p class="section-lead">We inspect the page, crawl useful internal links, probe safe interactions, and suggest tests based on what we observe.</p>
+  <div class="analyze-grid">
+    <label>
+      Test name (optional)
+      <input type="text" [(ngModel)]="flowName" name="flowName" placeholder="Homepage tests" />
+    </label>
+    <label>
+      Page URL
+      <input
+        type="url"
+        [(ngModel)]="startUrl"
+        name="startUrl"
+        placeholder="https://yoursite.com"
+        (keyup.enter)="discoverTests()"
+      />
+    </label>
+    <label>
+      Analysis depth
+      <select [(ngModel)]="analyzerDepth" name="analyzerDepth" (ngModelChange)="onDepthChange()">
+        <option value="quick">Quick — current page only</option>
+        <option value="standard">Standard — page + useful internal links</option>
+        <option value="deep">Deep — broader crawl</option>
+      </select>
+    </label>
+    <label class="checkbox-row">
+      <input type="checkbox" [(ngModel)]="includeSubpages" name="includeSubpages" [disabled]="analyzerDepth === 'quick'" />
+      Include useful subpages
+    </label>
+    <div class="analyze-action analyze-actions">
+      <button type="button" class="btn primary" (click)="discoverTests()" [disabled]="discovering || analyzing || !startUrl.trim()">
+        {{ discovering ? 'Analyzing website…' : 'Analyze website' }}
+      </button>
+      <button type="button" class="btn secondary" (click)="generateTests()" [disabled]="analyzing || discovering || !startUrl.trim()">
+        {{ analyzing ? 'Generating tests…' : 'Quick analyze (1 page)' }}
+      </button>
+    </div>
+  </div>
+
+  @if (showAdvancedOptions) {
+    <div class="advanced-limits">
+      <label>
+        Max pages
+        <input type="number" min="1" max="25" [(ngModel)]="analyzerMaxPages" name="analyzerMaxPages" />
+      </label>
+      <label>
+        Max actions per page
+        <input type="number" min="1" max="50" [(ngModel)]="analyzerMaxActions" name="analyzerMaxActions" />
+      </label>
+    </div>
+  }
+
+  <button type="button" class="advanced-toggle" (click)="showAdvancedOptions = !showAdvancedOptions">
+    {{ showAdvancedOptions ? 'Hide advanced limits' : 'Advanced limits' }}
+  </button>
+
+  @if (showAdvancedOptions) {
+    <div class="advanced-links">
+      <a routerLink="/scenarios/new/wizard" class="btn secondary">Guided wizard</a>
+      <a routerLink="/scenarios/new/record" class="btn secondary">Record flow</a>
+      <a routerLink="/scenarios/new/advanced" class="btn secondary">Advanced builder</a>
+      <a routerLink="/site-scans" class="btn secondary">Site scan</a>
+    </div>
+  }
+</section>
+
+@if (analyzing) {
+  <app-loading message="Analyzing the page and detecting forms, CTAs, and user flows…" />
+}
+
+@if (discovering && discoveryJob) {
+  <section class="card discovery-progress">
+    <div class="discovery-progress-header">
+      <div>
+        <h2>{{ stageLabel(discoveryJob.currentStage) }}</h2>
+        <p class="section-lead">{{ discoveryJob.currentMessage || 'Starting discovery…' }}</p>
+      </div>
+      <span class="meta-pill">{{ discoveryElapsedLabel() }}</span>
+    </div>
+
+    <div class="progress-bar-track" role="progressbar" [attr.aria-valuenow]="discoveryJob.progressPercent" aria-valuemin="0" aria-valuemax="100">
+      <div class="progress-bar-fill" [style.width.%]="discoveryJob.progressPercent || 0"></div>
+    </div>
+    <p class="progress-percent">{{ discoveryJob.progressPercent || 0 }}%</p>
+
+    <div class="discovery-stats-grid">
+      <div class="stat-item">
+        <span class="stat-label">Pages analyzed</span>
+        <strong>{{ discoveryJob.stats.pagesAnalyzed }} / {{ discoveryJob.stats.pagesSelected || discoveryJob.stats.totalPagesDiscovered || '?' }}</strong>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Actions probed</span>
+        <strong>{{ discoveryJob.stats.actionsProbed }}</strong>
+      </div>
+      @if (discoveryJob.stats.hoverCandidates != null) {
+        <div class="stat-item">
+          <span class="stat-label">Hover candidates</span>
+          <strong>{{ discoveryJob.stats.hoverCandidates }}</strong>
+        </div>
+      }
+      @if (discoveryJob.stats.clickCandidates != null) {
+        <div class="stat-item">
+          <span class="stat-label">Click candidates</span>
+          <strong>{{ discoveryJob.stats.clickCandidates }}</strong>
+        </div>
+      }
+      @if (discoveryJob.stats.formCandidates != null) {
+        <div class="stat-item">
+          <span class="stat-label">Form candidates</span>
+          <strong>{{ discoveryJob.stats.formCandidates }}</strong>
+        </div>
+      }
+      <div class="stat-item">
+        <span class="stat-label">Suggestions found</span>
+        <strong>{{ discoveryJob.stats.suggestionsFound }}</strong>
+      </div>
+    </div>
+
+    @if (discoveryReassurance()) {
+      <p class="discovery-reassurance">{{ discoveryReassurance() }}</p>
+    }
+
+    @if (discoveryJob.warnings.length > 0) {
+      <div class="warnings compact">
+        @for (warning of discoveryJob.warnings; track warning.message) {
+          <p>{{ warning.message }}</p>
+        }
+      </div>
+    }
+
+    @if (discoveryJob.partialSuggestions?.length) {
+      <div class="partial-preview">
+        <strong>Suggestions found so far ({{ discoveryJob.partialSuggestions!.length }})</strong>
+        <ul>
+          @for (s of discoveryJob.partialSuggestions!.slice(0, 5); track s.id) {
+            <li>{{ s.title }}</li>
+          }
+        </ul>
+      </div>
+    }
+
+    <div class="action-row">
+      <button
+        type="button"
+        class="btn secondary"
+        (click)="cancelDiscovery()"
+        [disabled]="cancellingDiscovery"
+      >
+        {{ cancellingDiscovery ? 'Cancelling…' : 'Cancel discovery' }}
+      </button>
+    </div>
+  </section>
+}
+
+@if (discoveryMessage) {
+  <section class="card success-banner">{{ discoveryMessage }}</section>
+}
+
+@if (analysis && viewMode === 'suggestions') {
+  <section class="card analysis-status">
+    <strong>{{ analysisStatusLabel }}</strong>
+    @if (analysis.timing?.loadDurationMs) {
+      <span>Loaded in {{ (analysis.timing!.loadDurationMs / 1000).toFixed(1) }}s</span>
+    }
+    @if (analysis.timing?.challengeDetected) {
+      <span class="challenge-flag">Browser check detected — we waited and retried before analyzing.</span>
+    }
+  </section>
+
+  @if (analysis.warnings.length > 0) {
+    <section class="card warnings">
+      @for (warning of analysis.warnings; track warning.type + warning.message) {
+        <p>{{ warning.message }}</p>
+      }
+    </section>
+  }
+
+  @if (analysisBlocked || analysisPartial) {
+    <section class="card blocked-panel">
+      <p>
+        @if (analysisBlocked) {
+          This site showed a browser check or bot protection screen. Suggestions may be unavailable until the real page loads.
+        } @else {
+          The page preview may be incomplete. Suggestions are based on what we could detect so far.
+        }
+      </p>
+      <div class="action-row">
+        <button type="button" class="btn primary" (click)="generateTests()">Retry</button>
+        <button type="button" class="btn secondary" (click)="retryMobileAnalysis()">Try mobile viewport</button>
+        <a routerLink="/scenarios/new/record" class="btn secondary">Continue manually</a>
+        <a routerLink="/site-scans" class="btn secondary">Run basic scan</a>
+      </div>
+    </section>
+  }
+
+  <section class="layout-grid">
+    <div class="main-column">
+      <section class="card">
+        <div class="section-top">
+          <div>
+            <h2>Suggested tests</h2>
+            <p class="section-lead">Pick a test and run it — we handle the steps for you.</p>
+          </div>
+          <span class="meta-pill">{{ analysisBlocked ? 'Unavailable' : analysis.suggestions.length + ' found' }}</span>
+        </div>
+
+        @if (analysis.suggestions.length === 0) {
+          <div class="empty-state">
+            @if (analysisBlocked) {
+              <p>We couldn't read the real page because of bot protection or a loading screen.</p>
+            } @else {
+              <p>No strong patterns detected. Try another URL, record a flow manually, or use the advanced builder.</p>
+            }
+          </div>
+        } @else {
+          <div class="suggestion-list">
+            @for (suggestion of analysis.suggestions; track suggestion.id) {
+              <article class="suggestion-card">
+                <div class="suggestion-top">
+                  <div>
+                    <h3>{{ suggestion.title }}</h3>
+                    <p>{{ suggestion.description }}</p>
+                    <span class="confidence-hint">{{ confidenceMessage(suggestion) }}</span>
+                  </div>
+                  <span class="confidence-badge" [ngClass]="confidenceClass(suggestion)">
+                    {{ suggestion.confidenceLevel }} confidence
+                  </span>
+                </div>
+
+                <div class="value-block">
+                  <strong>Why this matters</strong>
+                  <p>{{ suggestion.businessValue }}</p>
+                </div>
+
+                <div class="reasons-block">
+                  <strong>Why we suggested this</strong>
+                  <ul>
+                    @for (reason of suggestion.suggestedReasons; track reason) {
+                      <li>{{ reason }}</li>
+                    }
+                  </ul>
+                </div>
+
+                <div class="reliability-block">
+                  <app-test-reliability-score
+                    [steps]="suggestionSteps(suggestion)"
+                    [startUrl]="startUrl"
+                    [compact]="true"
+                  />
+                </div>
+
+                <div class="meta-grid">
+                  <div>
+                    <strong>Success check</strong>
+                    <p>{{ suggestion.successConditions[0]?.description || 'The test should complete successfully.' }}</p>
+                  </div>
+                  <div>
+                    <strong>Why we trust this</strong>
+                    <p>{{ reliabilityText(suggestion) }}</p>
+                  </div>
+                </div>
+
+                <div class="detected-summary">
+                  <strong>We found</strong>
+                  <ul>
+                    @for (element of suggestion.detectedElements; track element.selector) {
+                      <li>{{ element.label }}</li>
+                    }
+                  </ul>
+                </div>
+
+                <div class="suggestion-actions">
+                  <button
+                    type="button"
+                    class="btn primary"
+                    (click)="createAndRun(suggestion)"
+                    [disabled]="!!runningSuggestionId"
+                  >
+                    {{ isRunningSuggestion(suggestion) ? 'Running test…' : 'Create & run test' }}
+                  </button>
+                  <button type="button" class="btn secondary" (click)="togglePreviewSteps(suggestion)">
+                    {{ expandedSuggestionId === suggestion.id ? 'Hide steps' : 'Preview steps' }}
+                  </button>
+                  <button type="button" class="btn secondary" (click)="customizeSuggestion(suggestion)">
+                    Customize
+                  </button>
+                </div>
+
+                @if (expandedSuggestionId === suggestion.id) {
+                  <ol class="preview-steps">
+                    @for (step of suggestion.generatedSteps; track $index) {
+                      @if (step.type !== 'expect-success') {
+                        <li>{{ previewStepSummary(step) }}</li>
+                      }
+                    }
+                  </ol>
+                  @if (suggestion.successConditions.length) {
+                    <div class="success-preview">
+                      <strong>Success conditions</strong>
+                      <ul>
+                        @for (condition of suggestion.successConditions; track condition.label + (condition.value || '')) {
+                          <li>{{ condition.description }}</li>
+                        }
+                      </ul>
+                    </div>
+                  }
+                }
+
+                @if (isRunningSuggestion(suggestion)) {
+                  <app-loading message="Analyzing success signals and running your test in a real browser…" />
+                }
+
+                @if (cardRunError(suggestion); as runError) {
+                  <div class="card-run-error">{{ runError }}</div>
+                }
+
+                @if (cardRunResult(suggestion); as run) {
+                  <section class="run-result card-lite" [ngClass]="runStatusClass(run)">
+                    <div class="run-result-top">
+                      <div>
+                        <p class="eyebrow">Test result</p>
+                        <h4>{{ run.status === 'passed' ? 'Passed' : run.status === 'failed' ? 'Failed' : (run.status | titlecase) }}</h4>
+                        <p>{{ run.result.summary }}</p>
+                      </div>
+                      <span class="status-badge" [ngClass]="runStatusClass(run)">{{ run.status }}</span>
+                    </div>
+
+                    @if (primaryIssue(run); as issue) {
+                      @if (run.status !== 'passed') {
+                        <div class="issue-panel">
+                          <strong>What went wrong</strong>
+                          <p>{{ issue.message }}</p>
+                          @if (issue.recommendation) {
+                            <strong>Recommended fix</strong>
+                            <p>{{ issue.recommendation }}</p>
+                          }
+                        </div>
+                      }
+                    }
+
+                    @if (cardSuccessCheck(suggestion); as successCheck) {
+                      <div class="success-check-panel">
+                        <strong>Success check used</strong>
+                        <p>{{ successCheck }}</p>
+                      </div>
+                    }
+
+                    <div class="reliability-block compact">
+                      <app-test-reliability-score
+                        [steps]="suggestionSteps(suggestion)"
+                        [startUrl]="startUrl"
+                        [compact]="true"
+                      />
+                    </div>
+
+                    <div class="selector-confidence">
+                      <strong>Selector confidence</strong>
+                      <p>{{ selectorConfidence(run) }}</p>
+                    </div>
+
+                    @if (runScreenshotUrl(run); as src) {
+                      <img class="run-screenshot" [src]="src" alt="Test result screenshot" />
+                    }
+
+                    <strong>Steps performed</strong>
+                    <ol class="run-steps">
+                      @for (step of run.result.steps; track $index; let i = $index) {
+                        <li [class.failed]="step.status === 'failed'">
+                          <div class="step-top">
+                            <strong>{{ step.name }}</strong>
+                            <span class="step-status" [class.failed]="step.status === 'failed'">{{ step.status }}</span>
+                          </div>
+                          @if (step.message || step.status === 'passed') {
+                            <p>{{ runStepSummary(step) }}</p>
+                          }
+                          @if (step.selectorSuggestion) {
+                            <p class="selector-suggestion">{{ step.selectorSuggestion.message }}</p>
+                          }
+                          @if (runStepHasDevDetails(step)) {
+                            <button type="button" class="dev-toggle" (click)="toggleCardDevDetails(suggestion.id, i)">
+                              {{ cardDevDetailsVisible(suggestion.id, i) ? 'Hide' : 'Show' }} developer details
+                            </button>
+                            @if (cardDevDetailsVisible(suggestion.id, i)) {
+                              @if (step.attempts?.length) {
+                                <ol class="attempt-list">
+                                  @for (attempt of step.attempts!; track attempt.strategy + attempt.selector) {
+                                    <li [class.failed]="attempt.status === 'failed'">
+                                      <strong>{{ attempt.strategy }}</strong> — {{ attempt.selector }}
+                                      <span>{{ attempt.status }}</span>
+                                    </li>
+                                  }
+                                </ol>
+                              }
+                              @if (step.technicalDetails) {
+                                <pre class="dev-details">{{ step.technicalDetails }}</pre>
+                              }
+                              @if (step.selectorUsed) {
+                                <pre class="dev-details">Selector used: {{ step.selectorUsed }}</pre>
+                              }
+                            }
+                          }
+                          @if (stepScreenshot(step.screenshotPath); as shot) {
+                            <img class="step-screenshot" [src]="shot" [alt]="'Screenshot for ' + step.name" />
+                          }
+                        </li>
+                      }
+                    </ol>
+
+                    @if (run.id) {
+                      <a [routerLink]="['/scenario-runs', run.id]" class="btn secondary">Open full run details</a>
+                    }
+                  </section>
+                }
+              </article>
+            }
+          </div>
+        }
+      </section>
+    </div>
+
+    <aside class="preview-column">
+      @if (inspectionPreview) {
+        <app-page-preview-picker
+          [url]="startUrl"
+          [externalInspection]="inspectionPreview"
+          [showControls]="true"
+          [compactHeader]="false"
+        />
+      }
+    </aside>
+  </section>
+}
+
+@if (discovery && viewMode === 'discovery') {
+  <section class="card discovery-summary">
+    <div class="section-top">
+      <div>
+        <h2>Analyzer results</h2>
+        <p class="section-lead">
+          Collection:
+          <a [routerLink]="['/collections', discovery.collection.id]">{{ discovery.collection.name }}</a>
+        </p>
+        <p class="section-lead">
+          Found {{ discovery.summary?.suggestionsFound || discovery.suggestions.length }} possible tests across
+          {{ discovery.summary?.pagesAnalyzed || discovery.pagesAnalyzed.length }} pages.
+        </p>
+      </div>
+      <div class="bulk-actions">
+        <button
+          type="button"
+          class="btn primary"
+          (click)="addAllSafeToCollection()"
+          [disabled]="addingToCollection || safeDiscoverySuggestions.length === 0"
+        >
+          {{ addingToCollection ? 'Adding…' : 'Add all safe tests' }}
+        </button>
+        <button type="button" class="btn secondary" (click)="openCollection()">Open collection</button>
+      </div>
+    </div>
+
+    @if (discovery.warnings.length > 0) {
+      <div class="warnings">
+        @for (warning of discovery.warnings; track warning.message) {
+          <p>{{ warning.message }}</p>
+        }
+      </div>
+    }
+  </section>
+
+  @if (discoverySiteMap.length > 0) {
+    <section class="card site-map-panel">
+      <div class="section-top">
+        <div>
+          <h2>Site map</h2>
+          <p class="section-lead">Pages we analyzed and what each is likely for.</p>
+        </div>
+        <span class="meta-pill">{{ discoverySiteMap.length }} pages</span>
+      </div>
+      <ul class="site-map-list">
+        @for (page of discoverySiteMap; track page.url) {
+          <li class="site-map-item">
+            <div class="site-map-main">
+              <strong>{{ page.path === '/' ? '/' : page.path }}</strong>
+              <span class="intent-badge" [ngClass]="intentBadgeClass(page)">{{ intentLabel(page.intent) }}</span>
+              <span class="importance-pill importance-{{ page.importance }}">{{ page.importance }} priority</span>
+            </div>
+            <p class="site-map-title">{{ page.title || page.url }}</p>
+            @if (page.reasons?.length) {
+              <ul class="reasoning-list compact">
+                @for (reason of page.reasons.slice(0, 2); track reason) {
+                  <li>{{ reason }}</li>
+                }
+              </ul>
+            }
+          </li>
+        }
+      </ul>
+    </section>
+  }
+
+  @if (visibleDiscoveryGroups.length === 0) {
+    <section class="card empty-state no-results-panel">
+      <p><strong>{{ discoveryNoResults?.summary || 'We did not find reliable safe test suggestions.' }}</strong></p>
+      @if (discoveryNoResults) {
+        <div class="no-results-grid">
+          <div>
+            <p class="section-lead">What we attempted</p>
+            <ul class="reasoning-list">
+              <li>Pages analyzed: {{ discoveryNoResults.attempted.pagesAnalyzed }}</li>
+              <li>Click candidates: {{ discoveryNoResults.attempted.clickCandidates }}</li>
+              <li>Hover candidates: {{ discoveryNoResults.attempted.hoverCandidates }}</li>
+              <li>Form candidates: {{ discoveryNoResults.attempted.formCandidates }}</li>
+              <li>Select candidates: {{ discoveryNoResults.attempted.selectCandidates }}</li>
+              <li>Checkbox candidates: {{ discoveryNoResults.attempted.checkboxCandidates }}</li>
+              <li>Actions probed: {{ discoveryNoResults.attempted.actionsProbed }}</li>
+            </ul>
+          </div>
+          @if (discoveryNoResults.reasons.length > 0) {
+            <div>
+              <p class="section-lead">Why nothing was suggested</p>
+              <ul class="reasoning-list">
+                @for (reason of discoveryNoResults.reasons; track reason) {
+                  <li>{{ reason }}</li>
+                }
+              </ul>
+            </div>
+          }
+          @if (discoveryNoResults.nextSteps.length > 0) {
+            <div>
+              <p class="section-lead">Recommended next steps</p>
+              <ul class="reasoning-list">
+                @for (step of discoveryNoResults.nextSteps; track step) {
+                  <li>{{ step }}</li>
+                }
+              </ul>
+            </div>
+          }
+        </div>
+      } @else if (discoveryAttemptSummary) {
+        <p class="section-lead">What we attempted:</p>
+        <ul class="reasoning-list">
+          <li>Pages analyzed: {{ discovery.summary?.pagesAnalyzed || discovery.pagesAnalyzed.length }}</li>
+          @if (discoveryAttemptSummary.hoverCandidates) {
+            <li>Hover candidates found: {{ discoveryAttemptSummary.hoverCandidates }} ({{ discovery.summary?.hoverActionsProbed || 0 }} probed)</li>
+          }
+          @if (discoveryAttemptSummary.clickCandidates) {
+            <li>Click candidates found: {{ discoveryAttemptSummary.clickCandidates }}</li>
+          }
+          @if (discoveryAttemptSummary.formCandidates) {
+            <li>Form candidates found: {{ discoveryAttemptSummary.formCandidates }}</li>
+          }
+          @if (discoveryAttemptSummary.selectCandidates) {
+            <li>Select candidates found: {{ discoveryAttemptSummary.selectCandidates }}</li>
+          }
+          @if (discoveryAttemptSummary.checkboxCandidates || discoveryAttemptSummary.radioCandidates) {
+            <li>Checkbox/radio candidates found: {{ (discoveryAttemptSummary.checkboxCandidates || 0) + (discoveryAttemptSummary.radioCandidates || 0) }}</li>
+          }
+          <li>Actions probed: {{ discovery.summary?.actionsProbed || 0 }}</li>
+          <li>Suggestions generated: {{ discovery.summary?.suggestionsFound || 0 }}</li>
+        </ul>
+      }
+      <p class="section-lead">Recommended next steps: try Deep mode, increase max actions, use the advanced builder, or inspect the preview manually.</p>
+      <div class="action-row">
+        <button type="button" class="btn primary" (click)="discoverTests()">Retry discovery</button>
+        <a routerLink="/scenarios/new/advanced" class="btn secondary">Advanced builder</a>
+      </div>
+    </section>
+  } @else {
+    @for (group of visibleDiscoveryGroups; track group.path) {
+      <section class="card page-group">
+        <div class="page-group-header">
+          <h2>{{ group.path === '/' ? 'Home page' : group.path }}</h2>
+          <span class="meta-pill">{{ group.suggestions.length }} suggestions</span>
+        </div>
+        <div class="suggestion-list">
+          @for (suggestion of group.suggestions; track suggestion.id) {
+            <article class="suggestion-card">
+              <div class="suggestion-top">
+                <div>
+                  <h3>{{ suggestion.title }}</h3>
+                  <p>{{ discoveredSummary(suggestion) }}</p>
+                  @if (suggestion.flowSummary) {
+                    <p class="flow-summary">{{ suggestion.flowSummary }}</p>
+                  }
+                  @if (suggestion.isComposedFlow) {
+                    <span class="meta-pill composed-flow-pill">Multi-step flow</span>
+                  }
+                </div>
+                <span class="confidence-badge" [ngClass]="safetyClass(suggestion.safetyLevel)">
+                  {{ safetyLabel(suggestion.safetyLevel) }}
+                </span>
+              </div>
+
+              <div class="meta-grid compact">
+                <div>
+                  <strong>Source page</strong>
+                  <p>{{ discoverySourcePath(suggestion) }}</p>
+                </div>
+                <div>
+                  <strong>Confidence</strong>
+                  <p>{{ suggestion.confidenceLevel || 'medium' }}</p>
+                </div>
+                <div>
+                  <strong>Behavior type</strong>
+                  <p>{{ suggestion.type || suggestion.patternType }}</p>
+                </div>
+                @if (suggestion.pagesInvolved?.length) {
+                  <div>
+                    <strong>Pages involved</strong>
+                    <p>{{ suggestion.pagesInvolved!.join(' → ') }}</p>
+                  </div>
+                }
+                <div>
+                  <strong>Reliability</strong>
+                  <p>{{ suggestion.reliabilityScore != null ? suggestion.reliabilityScore + '/100' : (suggestion.confidenceLevel || 'medium') }}</p>
+                </div>
+              </div>
+
+              @if (suggestion.businessValue) {
+                <div class="value-block compact">
+                  <strong>Why this matters</strong>
+                  <p>{{ suggestion.businessValue }}</p>
+                </div>
+              }
+
+              @if (visualEvidenceFor(suggestion); as evidence) {
+                <div class="visual-evidence-block">
+                  <div class="visual-evidence-header">
+                    <strong>Visual evidence</strong>
+                    <div class="visual-toggle">
+                      <button type="button" [class.active]="visualEvidenceMode === 'before'" (click)="setVisualEvidenceMode('before')">Before</button>
+                      <button type="button" [class.active]="visualEvidenceMode === 'after'" (click)="setVisualEvidenceMode('after')">After</button>
+                    </div>
+                  </div>
+                  @if (evidence.summary) {
+                    <p class="visual-summary">{{ evidence.summary }}</p>
+                  }
+                  @if (evidenceScreenshot(activeEvidencePath(evidence)); as src) {
+                    <div class="visual-shot-wrap">
+                      <img class="visual-shot" [src]="src" [alt]="evidence.summary || 'Interaction evidence'" />
+                      @if (evidence.changedRegion && visualEvidenceMode === 'after') {
+                        <span
+                          class="changed-region"
+                          [style.left.px]="evidence.changedRegion.x"
+                          [style.top.px]="evidence.changedRegion.y"
+                          [style.width.px]="evidence.changedRegion.width"
+                          [style.height.px]="evidence.changedRegion.height"
+                        ></span>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+
+              @if (suggestionWhySuggested(suggestion).length > 0) {
+                <button type="button" class="btn-link" (click)="toggleReasoning(suggestion)">
+                  {{ expandedReasoningId === suggestion.id ? 'Hide' : 'Why suggested?' }}
+                </button>
+                @if (expandedReasoningId === suggestion.id) {
+                  <ul class="reasoning-list">
+                    @for (reason of suggestionWhySuggested(suggestion); track reason) {
+                      <li>{{ reason }}</li>
+                    }
+                  </ul>
+                }
+              }
+
+              @if (suggestion.safetyLevel === 'requires-confirmation') {
+                <p class="risk-note">
+                  This action requires manual confirmation because it may submit or delete real data.
+                </p>
+              }
+
+              <div class="suggestion-actions">
+                <button
+                  type="button"
+                  class="btn primary"
+                  (click)="addDiscoveryToCollection(suggestion, false)"
+                  [disabled]="addingToCollection || suggestion.safetyLevel === 'unsafe-skipped'"
+                >
+                  Add to collection
+                </button>
+                <button
+                  type="button"
+                  class="btn secondary"
+                  (click)="addDiscoveryToCollection(suggestion, true)"
+                  [disabled]="addingToCollection || isRunningDiscovery(suggestion) || suggestion.safetyLevel === 'unsafe-skipped' || suggestion.safetyLevel === 'requires-confirmation'"
+                >
+                  {{ isRunningDiscovery(suggestion) ? 'Running…' : 'Add & run' }}
+                </button>
+                <button type="button" class="btn secondary" (click)="toggleDiscoverySteps(suggestion)">
+                  {{ expandedDiscoveryId === suggestion.id ? 'Hide steps' : 'Preview steps' }}
+                </button>
+                <button type="button" class="btn secondary" (click)="ignoreDiscoverySuggestion(suggestion)">
+                  Ignore
+                </button>
+              </div>
+
+              @if (expandedDiscoveryId === suggestion.id) {
+                <ol class="preview-steps">
+                  @for (step of suggestion.generatedStepsPreview; track $index) {
+                    <li>{{ step }}</li>
+                  }
+                </ol>
+              }
+            </article>
+          }
+        </div>
+      </section>
+    }
+  }
+}
+
+@if (viewMode === 'review' && selectedSuggestion) {
+  <section class="card review-section">
+    <div class="section-top">
+      <div>
+        <h2>Customize test</h2>
+        <p class="section-lead">{{ selectedSuggestion.title }} — adjust steps or success check before running.</p>
+      </div>
+      <button type="button" class="btn secondary" (click)="backToSuggestions()">← Back to suggestions</button>
+    </div>
+
+    <div class="review-grid">
+      <div>
+        <app-test-reliability-score
+          [steps]="generatedSteps"
+          [startUrl]="startUrl"
+          [showFactors]="true"
+        />
+
+        <h3>What this test will do</h3>
+        <ol class="timeline">
+          @for (step of generatedSteps; track step.id; let i = $index) {
+            <li>
+              <div class="step-row">
+                <strong>{{ plainStep(step) }}</strong>
+                @if (step.action === 'click' || step.action === 'fill' || step.action === 'expectVisible') {
+                  <button type="button" class="btn-link" (click)="startCorrectingStep(i)">Change element</button>
+                }
+              </div>
+              @if (showAdvancedDetails) {
+                <pre>{{ devStep(step) }}</pre>
+              }
+            </li>
+          }
+        </ol>
+
+        <div class="review-toggles">
+          <label class="toggle-line">
+            <input type="checkbox" [(ngModel)]="showAdvancedDetails" name="showAdvancedDetails" />
+            Show developer details
+          </label>
+          <label class="toggle-line">
+            <input type="checkbox" [(ngModel)]="showAdvancedEditor" name="showAdvancedEditor" />
+            Edit selected elements manually
+          </label>
+        </div>
+
+        @if (showAdvancedEditor) {
+          <div class="advanced-editor">
+            @for (step of generatedSteps; track step.id; let i = $index) {
+              @if (step.action === 'click' || step.action === 'fill' || step.action === 'expectVisible') {
+                <label>
+                  {{ plainStep(step) }} — selected element override
+                  <input
+                    type="text"
+                    [ngModel]="step.selector"
+                    (ngModelChange)="updateGeneratedStep(i, { selector: $event })"
+                    [name]="'selector-' + step.id"
+                  />
+                </label>
+              }
+            }
+          </div>
+        }
+      </div>
+
+      <div>
+        <app-success-condition-assistant
+          [startUrl]="startUrl"
+          [steps]="generatedSteps"
+          [viewport]="assistantViewport"
+          (stepsChange)="onAssistantStepsChange($event)"
+        />
+
+        <details class="manual-success-fallback">
+          <summary>Pick a success check manually</summary>
+          <p class="section-lead">Use this if the assistant did not find a good match.</p>
+          <div class="success-options">
+            @for (strategy of successStrategies(); track strategy.type + (strategy.value || '')) {
+              <button
+                type="button"
+                class="success-option"
+                [class.selected]="selectedSuccessStrategy?.type === strategy.type && selectedSuccessStrategy?.value === strategy.value"
+                (click)="applySuccessStrategy(strategy)"
+              >
+                <strong>{{ successStrategyLabels[strategy.type] }}</strong>
+                <span>{{ describeStrategy(strategy) }}</span>
+              </button>
+            }
+          </div>
+        </details>
+      </div>
+    </div>
+
+    @if (correctingStepIndex != null && inspectionPreview) {
+      <section class="correction-panel card-lite">
+        <h3>Pick a different element for step {{ correctingStepIndex + 1 }}</h3>
+        <p>Click the correct element on the preview below.</p>
+        <app-page-preview-picker
+          [url]="startUrl"
+          [externalInspection]="inspectionPreview"
+          [showControls]="false"
+          [compactHeader]="true"
+          [pickingEnabled]="true"
+          [forcePickEnabled]="true"
+          (elementSelected)="onCorrectionSelected($event)"
+        />
+        <button type="button" class="btn secondary" (click)="cancelCorrectingStep()">Cancel</button>
+      </section>
+    }
+
+    <div class="run-actions">
+      <button type="button" class="btn primary" (click)="saveAndRun()" [disabled]="saving || running">
+        {{ running ? 'Running test…' : 'Run test now' }}
+      </button>
+      <button type="button" class="btn secondary" (click)="saveOnly()" [disabled]="saving || running">
+        Save without running
+      </button>
+    </div>
+  </section>
+}

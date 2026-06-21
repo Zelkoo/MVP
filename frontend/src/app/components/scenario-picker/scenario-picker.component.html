@@ -1,0 +1,67 @@
+<div class="scenario-picker">
+  @if (selectedScenario; as selected) {
+    <div class="selected-card">
+      <div class="selected-main">
+        <strong class="selected-title" [title]="selected.name">{{ displayTitle(selected) }}</strong>
+        <p class="selected-meta" [title]="metadataLine(selected)">{{ metadataLine(selected) }}</p>
+      </div>
+      <button type="button" class="btn secondary" (click)="clearSelection()">Change</button>
+    </div>
+  } @else {
+    <label class="search-label">
+      Search saved tests
+      <input
+        type="search"
+        [(ngModel)]="searchQuery"
+        placeholder="Search saved tests..."
+        autocomplete="off"
+      />
+    </label>
+
+    <div class="filter-row">
+      @if (projectDomain) {
+        <label>
+          Domain
+          <select [(ngModel)]="domainFilter">
+            <option [ngValue]="projectDomain">{{ projectDomain }}</option>
+            <option value="">All domains</option>
+          </select>
+        </label>
+      }
+      <label>
+        Type
+        <select [(ngModel)]="typeFilter">
+          <option value="">All types</option>
+          @for (type of availableTypes; track type) {
+            <option [value]="type">{{ typeLabel(type) }}</option>
+          }
+        </select>
+      </label>
+    </div>
+
+    @if (scenarios.length === 0) {
+      <p class="empty-state">No saved tests found</p>
+    } @else if (filteredScenarios.length === 0) {
+      <p class="empty-state">No tests match your search</p>
+    } @else {
+      <ul class="scenario-list" role="listbox" aria-label="Saved tests">
+        @for (scenario of filteredScenarios; track scenario.id) {
+          <li>
+            <button
+              type="button"
+              class="scenario-row"
+              (click)="selectScenario(scenario)"
+              [title]="scenario.name"
+            >
+              <span class="row-title">{{ displayTitle(scenario) }}</span>
+              <span class="row-meta">{{ metadataLine(scenario) }}</span>
+              @if (pickerMeta(scenario).safety; as safety) {
+                <span class="safety-pill">{{ safetyLabel(safety) }}</span>
+              }
+            </button>
+          </li>
+        }
+      </ul>
+    }
+  }
+</div>

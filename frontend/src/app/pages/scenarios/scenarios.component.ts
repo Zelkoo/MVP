@@ -6,6 +6,7 @@ import { Scenario, SCENARIO_TYPE_OPTIONS } from '../../models/scenario.model';
 import { LoadingComponent } from '../../components/loading/loading.component';
 import { ErrorMessageComponent } from '../../components/error-message/error-message.component';
 import { formatScanDate } from '../../utils/format.util';
+import { formatScenarioDisplayTitle } from '../../utils/scenario-display.util';
 
 @Component({
   selector: 'app-scenarios',
@@ -20,9 +21,18 @@ export class ScenariosComponent implements OnInit {
   scenarios: Scenario[] = [];
   loading = true;
   error: string | null = null;
+  successMessage: string | null = null;
+  deletingId: number | null = null;
+  pendingDelete: Scenario | null = null;
   typeLabels = Object.fromEntries(SCENARIO_TYPE_OPTIONS.map((o) => [o.value, o.label]));
 
   ngOnInit(): void {
+    this.loadScenarios();
+  }
+
+  loadScenarios(): void {
+    this.loading = true;
+    this.error = null;
     this.scenarioService.getScenarios().subscribe({
       next: (scenarios) => {
         this.scenarios = scenarios;
@@ -33,6 +43,10 @@ export class ScenariosComponent implements OnInit {
         this.loading = false;
       },
     });
+  }
+
+  displayTitle(scenario: Scenario): string {
+    return formatScenarioDisplayTitle(scenario);
   }
 
   typeLabel(type: string): string {
@@ -46,5 +60,37 @@ export class ScenariosComponent implements OnInit {
 
   formatDate(value: string | undefined): string {
     return formatScanDate(value);
+  }
+
+  openDeleteModal(scenario: Scenario): void {
+    this.pendingDelete = scenario;
+    this.successMessage = null;
+  }
+
+  closeDeleteModal(): void {
+    this.pendingDelete = null;
+  }
+
+  confirmDelete(): void {
+    if (!this.pendingDelete?.id || this.deletingId) return;
+
+    const deletedId = this.pendingDelete.id;
+    this.deletingId = deletedId;
+    this.error = null;
+
+    this.scenarioService.deleteScenario(deletedId).subscribe({
+      next: (result) => {
+        this.deletingId = null;
+        this.pendingDelete = null;
+        this.scenarios = this.scenarios.filter((scenario) => scenario.id !== deletedId);
+        this.successMessage = result.warning
+          ? `Test deleted. ${result.warning}`
+          : 'Test deleted. Run history was kept.';
+      },
+      error: (err) => {
+        this.deletingId = null;
+        this.error = err.error?.error || 'Failed to delete saved test.';
+      },
+    });
   }
 }

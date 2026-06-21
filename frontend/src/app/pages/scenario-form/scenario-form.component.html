@@ -1,10 +1,14 @@
 <section class="page-header">
   <div>
-    <a routerLink="/" class="back-link">← Back to flows</a>
-    <h1>Build a flow</h1>
+    <a routerLink="/flows" class="back-link">← Back to saved tests</a>
+    <h1>Advanced flow builder</h1>
     <p class="subtitle">
-      Define a website user journey step by step — no code required. This is the guided scenario recorder.
+      Full control over every step. Use the guided wizard for a simpler experience.
     </p>
+  </div>
+  <div class="header-actions">
+    <a routerLink="/" class="btn secondary">Smart suggestions</a>
+    <a routerLink="/scenarios/new/record" class="btn secondary">Record flow</a>
   </div>
 </section>
 
@@ -35,8 +39,8 @@
 </section>
 
 <section class="card">
-  <h3>Start from a template</h3>
-  <p class="section-lead">Load a common business flow, then customize selectors and expectations.</p>
+  <h3>Quick templates</h3>
+  <p class="section-lead">Start from a common business flow, then customize steps using the visual picker.</p>
   <div class="template-grid">
     @for (template of templates; track template.id) {
       <button type="button" class="template-card" (click)="applyTemplate(template.id)">
@@ -47,19 +51,34 @@
   </div>
 </section>
 
-<section class="card">
-  <h3>Flow steps</h3>
-  <p class="section-lead">Add, remove, and reorder steps. Each step runs in Playwright during the test.</p>
-  <app-flow-step-builder
-    [steps]="steps"
-    [startUrl]="startUrl"
-    (stepsChange)="onStepsChange($event)"
+<section class="builder-layout">
+  <div class="builder-main">
+    <app-flow-step-builder
+      [steps]="steps"
+      [startUrl]="startUrl"
+      [activeStepIndex]="activeStepIndex"
+      (stepsChange)="onStepsChange($event)"
+      (activeStepChange)="onActiveStepChange($event)"
+    />
+  </div>
+
+  <app-page-preview-picker
+    [url]="startUrl"
+    [activeStepAction]="activeStepAction()"
+    [pickingEnabled]="steps.length > 0"
+    (elementSelected)="onElementSelected($event)"
   />
 </section>
+
+<app-test-reliability-score
+  [steps]="steps"
+  [startUrl]="startUrl"
+  [showFactors]="true"
+/>
 
 <section class="form-actions card">
   <button type="button" class="btn primary" (click)="save()" [disabled]="saving">
     {{ saving ? 'Saving...' : 'Save flow' }}
   </button>
-  <a routerLink="/" class="btn secondary">Cancel</a>
+  <a routerLink="/flows" class="btn secondary">Cancel</a>
 </section>

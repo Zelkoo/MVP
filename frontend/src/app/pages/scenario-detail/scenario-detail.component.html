@@ -1,12 +1,17 @@
 <section class="page-header">
   <div>
-    <a routerLink="/" class="back-link">← Back to flows</a>
-    <h1>{{ scenario?.name || 'Flow' }}</h1>
+    <a routerLink="/flows" class="back-link">← Back to saved tests</a>
+    <h1 [title]="scenario?.name || ''">{{ displayTitle() }}</h1>
   </div>
   @if (scenario && !loading) {
-    <button type="button" class="btn primary" (click)="run()" [disabled]="running">
-      {{ running ? 'Running flow...' : 'Run flow' }}
-    </button>
+    <div class="header-actions">
+      <button type="button" class="btn secondary danger" (click)="openDeleteModal()" [disabled]="deleting">
+        Delete saved test
+      </button>
+      <button type="button" class="btn primary" (click)="run()" [disabled]="running">
+        {{ running ? 'Running flow...' : 'Run flow' }}
+      </button>
+    </div>
   }
 </section>
 
@@ -38,6 +43,13 @@
     </dl>
   </section>
 
+  <app-test-reliability-score
+    [scenarioType]="scenario.type"
+    [startUrl]="scenario.startUrl"
+    [config]="scenario.config"
+    [showFactors]="true"
+  />
+
   @if (flowSteps().length > 0) {
     <section class="card">
       <h3>Recorded steps</h3>
@@ -61,4 +73,19 @@
     <strong>Before you run</strong>
     <p>Confirm you have permission to test this site. The runner executes each step on the live site with Playwright.</p>
   </section>
+}
+
+@if (showDeleteModal && scenario) {
+  <div class="modal-backdrop" (click)="closeDeleteModal()">
+    <div class="modal card" (click)="$event.stopPropagation()">
+      <h2>Delete this saved test?</h2>
+      <p>This will remove it from your saved tests. Existing run history will be kept.</p>
+      <div class="modal-actions">
+        <button type="button" class="btn secondary" (click)="closeDeleteModal()">Cancel</button>
+        <button type="button" class="btn primary danger" [disabled]="deleting" (click)="confirmDelete()">
+          {{ deleting ? 'Deleting…' : 'Delete saved test' }}
+        </button>
+      </div>
+    </div>
+  </div>
 }

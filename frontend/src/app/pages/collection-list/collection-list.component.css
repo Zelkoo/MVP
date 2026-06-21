@@ -1,0 +1,74 @@
+.collection-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.collection-item h2 {
+  margin: 0 0 0.25rem;
+}
+
+.domain {
+  color: var(--muted);
+  margin: 0;
+}
+
+.collection-item-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.collection-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  margin: 0.75rem 0;
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+}
+
+.collection-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.status-pill {
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.status-pill.status-passed {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-pill.status-failed,
+.status-pill.status-error {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.status-pill.status-partial {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-pill.status-unknown {
+  background: var(--surface-muted, #f3f4f6);
+  color: var(--muted);
+}
+
+.empty-icon {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.btn.danger {
+  border-color: #fecaca;
+  color: #991b1b;
+}

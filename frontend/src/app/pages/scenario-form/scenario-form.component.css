@@ -102,3 +102,20 @@
   flex-wrap: wrap;
   gap: 0.65rem;
 }
+
+.builder-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.builder-main {
+  min-width: 0;
+}
+
+@media (max-width: 1100px) {
+  .builder-layout {
+    grid-template-columns: 1fr;
+  }
+}
