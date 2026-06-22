@@ -1,0 +1,19 @@
+{
+  "name": "frontend-qa-agent-backend",
+  "version": "0.9.0",
+  "description": "Backend API for Frontend QA Agent",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "audit": "node scripts/audit-api.js",
+    "postinstall": "node -e \"if(process.env.SKIP_PLAYWRIGHT_INSTALL!=='1'){require('child_process').execSync('npx playwright install chromium',{stdio:'inherit'})}\""
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.7.0",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "nodemailer": "^6.10.0",
+    "playwright": "1.61.0"
+  }
+}
