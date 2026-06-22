@@ -217,15 +217,37 @@
     </section>
   }
 
-  <section class="layout-grid">
-    <div class="main-column">
-      <section class="card">
+  <nav class="analyzer-tabs">
+    <button
+      type="button"
+      [class.active]="analyzerContentTab === 'suggestions'"
+      (click)="analyzerContentTab = 'suggestions'"
+    >
+      Suggested tests
+    </button>
+    <button
+      type="button"
+      [class.active]="analyzerContentTab === 'preview'"
+      (click)="analyzerContentTab = 'preview'"
+    >
+      Visual preview
+    </button>
+  </nav>
+
+  @if (analyzerContentTab === 'suggestions') {
+  <section class="results-section">
+    <section class="card">
         <div class="section-top">
           <div>
             <h2>Suggested tests</h2>
             <p class="section-lead">Pick a test and run it — we handle the steps for you.</p>
           </div>
-          <span class="meta-pill">{{ analysisBlocked ? 'Unavailable' : analysis.suggestions.length + ' found' }}</span>
+          <div class="section-top-actions">
+            <span class="meta-pill">{{ analysisBlocked ? 'Unavailable' : analysis.suggestions.length + ' found' }}</span>
+            @if (inspectionPreview) {
+              <button type="button" class="btn secondary" (click)="openVisualPreviewTab()">Open visual preview</button>
+            }
+          </div>
         </div>
 
         @if (analysis.suggestions.length === 0) {
@@ -440,19 +462,27 @@
           </div>
         }
       </section>
-    </div>
+  </section>
+  }
 
-    <aside class="preview-column">
+  @if (analyzerContentTab === 'preview') {
+    <section class="results-section preview-tab-section">
       @if (inspectionPreview) {
         <app-page-preview-picker
           [url]="startUrl"
           [externalInspection]="inspectionPreview"
           [showControls]="true"
           [compactHeader]="false"
+          [fullWidth]="true"
         />
+      } @else {
+        <section class="card preview-tab-empty">
+          <h2>Visual preview</h2>
+          <p class="section-lead">Run Quick analyze or Analyze website to load a page preview and inspect elements.</p>
+        </section>
       }
-    </aside>
-  </section>
+    </section>
+  }
 }
 
 @if (discovery && viewMode === 'discovery') {

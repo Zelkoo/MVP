@@ -201,7 +201,7 @@ export class ScenarioSmartFlowComponent implements OnInit, OnDestroy {
   cardDevDetailsOpen = new Map<string, Set<number>>();
   cardSuccessChecks = new Map<string, string>();
 
-
+  analyzerContentTab: 'suggestions' | 'preview' = 'suggestions';
 
   successStrategyLabels = SUCCESS_STRATEGY_LABELS;
 
@@ -410,7 +410,9 @@ export class ScenarioSmartFlowComponent implements OnInit, OnDestroy {
 
   }
 
-
+  openVisualPreviewTab(): void {
+    this.analyzerContentTab = 'preview';
+  }
 
   get analysisStatusLabel(): string {
 

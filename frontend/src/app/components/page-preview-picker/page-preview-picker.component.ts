@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnChanges, OnDestroy, OnInit, Output, SimpleChanges, inject } from '@angular/core';
+import { Component, ElementRef, EventEmitter, Input, OnChanges, OnDestroy, OnInit, Output, SimpleChanges, ViewChild, inject } from '@angular/core';
 
 import { CommonModule } from '@angular/common';
 
@@ -42,6 +42,10 @@ import {
 
   importanceBadgeClass,
 
+  importanceLabel,
+
+  formatElementDisplayLabel,
+
   suggestedActionsLabel,
 
 } from '../../utils/element-guide.util';
@@ -79,6 +83,8 @@ export class PagePreviewPickerComponent implements OnInit, OnDestroy, OnChanges 
   @Input() showControls = true;
 
   @Input() compactHeader = false;
+
+  @Input() fullWidth = false;
 
   @Input() guidedMode = true;
 
@@ -120,13 +126,21 @@ export class PagePreviewPickerComponent implements OnInit, OnDestroy, OnChanges 
 
   activeFilter: ElementGuideFilter = 'important';
 
-  showDeveloperDetails = false;
+  elementSearchQuery = '';
 
-
+  previewZoom: 'fit' | '100' | '150' = 'fit';
 
   scaleX = 1;
 
   scaleY = 1;
+
+  imageNaturalWidth = 0;
+
+  imageNaturalHeight = 0;
+
+  @ViewChild('previewImage') previewImageRef?: ElementRef<HTMLImageElement>;
+
+  private resizeObserver: ResizeObserver | null = null;
 
 
 
@@ -244,6 +258,52 @@ export class PagePreviewPickerComponent implements OnInit, OnDestroy, OnChanges 
 
 
 
+  get filteredGuidedElements(): InspectedElement[] {
+
+    const query = this.elementSearchQuery.trim().toLowerCase();
+
+    if (!query) return this.guidedElements;
+
+    return this.guidedElements.filter((element) => {
+
+      const label = this.displayLabel(element).toLowerCase();
+
+      const category = this.categoryLabel(element).toLowerCase();
+
+      const meaning = (element.businessMeaning || '').toLowerCase();
+
+      const actions = this.actionsLabel(element).toLowerCase();
+
+      return (
+
+        label.includes(query) ||
+
+        category.includes(query) ||
+
+        meaning.includes(query) ||
+
+        actions.includes(query)
+
+      );
+
+    });
+
+  }
+
+
+
+  get previewImageWidth(): number | null {
+
+    if (this.previewZoom === 'fit' || !this.imageNaturalWidth) return null;
+
+    const multiplier = this.previewZoom === '150' ? 1.5 : 1;
+
+    return Math.round(this.imageNaturalWidth * multiplier);
+
+  }
+
+
+
   get focusedElement(): InspectedElement | null {
 
     const id = this.focusedElementId || this.selectedElementId || this.hoveredElementId;
@@ -286,6 +346,12 @@ export class PagePreviewPickerComponent implements OnInit, OnDestroy, OnChanges 
 
     });
 
+    if (typeof ResizeObserver !== 'undefined') {
+
+      this.resizeObserver = new ResizeObserver(() => this.updateOverlayScale());
+
+    }
+
   }
 
 
@@ -293,6 +359,8 @@ export class PagePreviewPickerComponent implements OnInit, OnDestroy, OnChanges 
   ngOnDestroy(): void {
 
     this.stopLoadMessageTimer();
+
+    this.disconnectResizeObserver();
 
   }
 
@@ -416,6 +484,16 @@ export class PagePreviewPickerComponent implements OnInit, OnDestroy, OnChanges 
 
 
 
+  setPreviewZoom(zoom: 'fit' | '100' | '150'): void {
+
+    this.previewZoom = zoom;
+
+    requestAnimationFrame(() => this.updateOverlayScale());
+
+  }
+
+
+
   onImageLoad(event: Event): void {
 
     const img = event.target as HTMLImageElement;
@@ -424,13 +502,59 @@ export class PagePreviewPickerComponent implements OnInit, OnDestroy, OnChanges 
 
 
 
-    const naturalWidth = img.naturalWidth || this.displayInspection.viewport.width;
+    this.imageNaturalWidth = img.naturalWidth || this.displayInspection.viewport.width;
 
-    const naturalHeight = img.naturalHeight || this.displayInspection.viewport.height;
+    this.imageNaturalHeight = img.naturalHeight || this.displayInspection.viewport.height;
 
-    this.scaleX = img.clientWidth / naturalWidth;
+    this.observePreviewImage(img);
 
-    this.scaleY = img.clientHeight / naturalHeight;
+    this.updateOverlayScale(img);
+
+  }
+
+
+
+  private observePreviewImage(img: HTMLImageElement): void {
+
+    this.disconnectResizeObserver();
+
+    this.resizeObserver?.observe(img);
+
+  }
+
+
+
+  private disconnectResizeObserver(): void {
+
+    if (this.previewImageRef?.nativeElement) {
+
+      this.resizeObserver?.unobserve(this.previewImageRef.nativeElement);
+
+    }
+
+  }
+
+
+
+  private updateOverlayScale(img?: HTMLImageElement): void {
+
+    const imageEl = img || this.previewImageRef?.nativeElement;
+
+    if (!imageEl || !this.displayInspection) return;
+
+
+
+    const naturalWidth = this.imageNaturalWidth || this.displayInspection.viewport.width;
+
+    const naturalHeight = this.imageNaturalHeight || this.displayInspection.viewport.height;
+
+    if (!naturalWidth || !naturalHeight) return;
+
+
+
+    this.scaleX = imageEl.clientWidth / naturalWidth;
+
+    this.scaleY = imageEl.clientHeight / naturalHeight;
 
   }
 
@@ -591,10 +715,10 @@ export class PagePreviewPickerComponent implements OnInit, OnDestroy, OnChanges 
 
 
   displayLabel(element: InspectedElement): string {
-
-    return element.humanLabel || element.label;
-
+    return formatElementDisplayLabel(element);
   }
+
+  importanceLabel = importanceLabel;
 
 
 

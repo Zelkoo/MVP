@@ -67,7 +67,19 @@ export function filterGuidedElements(
   activeFilter: ElementGuideFilter
 ): InspectedElement[] {
   const filtered = elements.filter((element) => matchesElementGuideFilter(element, activeFilter));
-  return sortGuidedElements(filtered.length ? filtered : elements);
+  return sortGuidedElements(filtered);
+}
+
+export function formatElementDisplayLabel(element: InspectedElement): string {
+  const label = (element.humanLabel || element.label || '').trim();
+  if (!label) return 'Element';
+  return label.replace(/\s+(link|button|field|input|menu)$/i, '').trim() || label;
+}
+
+export function importanceLabel(importance: ElementImportance | undefined): string {
+  if (importance === 'high') return 'High';
+  if (importance === 'medium') return 'Medium';
+  return 'Low';
 }
 
 export function sortGuidedElements(elements: InspectedElement[]): InspectedElement[] {

@@ -1,7 +1,12 @@
-<section class="preview-panel card" [class.guided-layout]="showGuidedPanel">
+<section
+  class="preview-panel card"
+  [class.guided-layout]="showGuidedPanel"
+  [class.full-width-panel]="fullWidth"
+  [class.compact-panel]="compactHeader"
+>
   @if (!compactHeader) {
     <div class="preview-header">
-      <div>
+      <div class="preview-header-copy">
         <h3>{{ guidedMode ? 'Guided element selector' : 'Page preview' }}</h3>
         <p class="section-lead">
           @if (guidedMode) {
@@ -34,7 +39,9 @@
   }
 
   @if (loading && !externalInspection) {
-    <app-loading [message]="loadingMessage" />
+    <div class="preview-loading">
+      <app-loading [message]="loadingMessage" />
+    </div>
   }
 
   @if ((!loading || externalInspection) && displayInspection) {
@@ -92,9 +99,19 @@
       }
     </div>
 
-    <div class="guided-shell" [class.with-sidebar]="showGuidedPanel">
+    <div class="guided-workspace" [class.with-list]="showGuidedPanel">
       @if (showGuidedPanel) {
-        <aside class="guided-sidebar">
+        <aside class="element-list-panel">
+          <label class="search-field">
+            <span class="search-label">Search elements</span>
+            <input
+              type="search"
+              [(ngModel)]="elementSearchQuery"
+              name="elementSearch"
+              placeholder="Search by label or category"
+            />
+          </label>
+
           <div class="filter-row">
             @for (filter of guideFilters; track filter.id) {
               <button
@@ -109,94 +126,132 @@
           </div>
 
           <div class="guided-list">
-            @for (element of guidedElements; track element.id) {
+            @if (filteredGuidedElements.length === 0) {
+              <p class="guided-empty">
+                @if (elementSearchQuery.trim()) {
+                  No elements match your search.
+                } @else if (activeFilter === 'important') {
+                  No high-importance elements on this page. Try Links or Navigation.
+                } @else {
+                  No elements match this filter.
+                }
+              </p>
+            }
+            @for (element of filteredGuidedElements; track element.id) {
               <button
                 type="button"
                 class="guided-item"
                 [class.active]="isFocused(element) || isSelected(element)"
+                [title]="displayLabel(element)"
                 (mouseenter)="onListFocus(element)"
                 (mouseleave)="onHover(null)"
                 (click)="onListSelect(element)"
               >
                 <div class="guided-item-top">
-                  <strong>{{ displayLabel(element) }}</strong>
+                  <strong class="guided-item-label">{{ displayLabel(element) }}</strong>
                   <span class="importance-badge" [ngClass]="importanceClass(element)">
-                    {{ element.importance || 'low' }}
+                    {{ importanceLabel(element.importance) }}
                   </span>
                 </div>
-                <span class="guided-category">{{ categoryLabel(element) }}</span>
-                <p>{{ element.businessMeaning || 'Interactive element on the page.' }}</p>
+                <div class="guided-item-meta">
+                  <span class="guided-category">{{ categoryLabel(element) }}</span>
+                  @if (actionsLabel(element)) {
+                    <span class="guided-action">{{ actionsLabel(element) }}</span>
+                  }
+                </div>
               </button>
             }
           </div>
         </aside>
       }
 
-      <div class="preview-column">
-        <div class="preview-stage" [class.preview-unusable]="!previewUsable && highlightElementIds.length === 0">
-          <img
-            class="preview-image"
-            [src]="screenshotSrc"
-            [alt]="displayInspection.title || 'Page preview'"
-            (load)="onImageLoad($event)"
-          />
-
-          @if (showOverlays) {
-            <div class="overlay-layer" [class.picking]="canPick || guidedMode">
-              @for (element of displayInspection.elements; track element.id) {
-                @if (previewUsable || isHighlighted(element)) {
-                  <button
-                    type="button"
-                    class="element-overlay"
-                    [class.hovered]="isHovered(element)"
-                    [class.selected]="isSelected(element)"
-                    [class.highlighted]="isHighlighted(element)"
-                    [class.focused]="isFocused(element)"
-                    [style.left]="overlayStyle(element)['left']"
-                    [style.top]="overlayStyle(element)['top']"
-                    [style.width]="overlayStyle(element)['width']"
-                    [style.height]="overlayStyle(element)['height']"
-                    [title]="displayLabel(element)"
-                    [disabled]="!canPick && !guidedMode"
-                    (mouseenter)="onHover(element)"
-                    (mouseleave)="onHover(null)"
-                    (click)="onSelect(element, $event)"
-                  ></button>
-                }
-              }
-            </div>
-          }
+      <div class="preview-main">
+        <div class="preview-toolbar">
+          <span class="toolbar-label">Zoom</span>
+          <div class="zoom-controls">
+            <button type="button" class="zoom-btn" [class.active]="previewZoom === 'fit'" (click)="setPreviewZoom('fit')">Fit</button>
+            <button type="button" class="zoom-btn" [class.active]="previewZoom === '100'" (click)="setPreviewZoom('100')">100%</button>
+            <button type="button" class="zoom-btn" [class.active]="previewZoom === '150'" (click)="setPreviewZoom('150')">150%</button>
+          </div>
         </div>
 
-        @if (showGuidedPanel && focusedElement; as element) {
-          <section class="element-explanation card-lite">
-            <div class="explanation-top">
-              <div>
-                <p class="eyebrow">{{ categoryLabel(element) }}</p>
-                <h4>{{ displayLabel(element) }}</h4>
+        <div class="preview-stage" [class.preview-unusable]="!previewUsable && highlightElementIds.length === 0">
+          <div
+            class="preview-image-wrap"
+            [class.zoom-fit]="previewZoom === 'fit'"
+            [style.width.px]="previewImageWidth"
+          >
+            <img
+              #previewImage
+              class="preview-image"
+              [src]="screenshotSrc"
+              [alt]="displayInspection.title || 'Page preview'"
+              (load)="onImageLoad($event)"
+            />
+
+            @if (showOverlays) {
+              <div class="overlay-layer" [class.picking]="canPick || guidedMode">
+                @for (element of displayInspection.elements; track element.id) {
+                  @if (previewUsable || isHighlighted(element)) {
+                    <button
+                      type="button"
+                      class="element-overlay"
+                      [class.hovered]="isHovered(element)"
+                      [class.selected]="isSelected(element)"
+                      [class.highlighted]="isHighlighted(element)"
+                      [class.focused]="isFocused(element)"
+                      [style.left]="overlayStyle(element)['left']"
+                      [style.top]="overlayStyle(element)['top']"
+                      [style.width]="overlayStyle(element)['width']"
+                      [style.height]="overlayStyle(element)['height']"
+                      [title]="displayLabel(element)"
+                      [disabled]="!canPick && !guidedMode"
+                      (mouseenter)="onHover(element)"
+                      (mouseleave)="onHover(null)"
+                      (click)="onSelect(element, $event)"
+                    ></button>
+                  }
+                }
               </div>
-              <span class="importance-badge" [ngClass]="importanceClass(element)">
-                {{ element.importance || 'low' }} importance
-              </span>
-            </div>
-            <p class="explanation-copy">{{ element.explanation || element.businessMeaning }}</p>
-            @if (actionsLabel(element)) {
-              <p class="suggested-actions"><strong>Suggested:</strong> {{ actionsLabel(element) }}</p>
             }
-            <label class="toggle-line">
-              <input type="checkbox" [(ngModel)]="showDeveloperDetails" name="pickerDevDetails" />
-              Show developer details
-            </label>
-            @if (showDeveloperDetails) {
-              <pre class="dev-details">{{ element.selector }}</pre>
-            }
-          </section>
-        }
+          </div>
+        </div>
       </div>
+
+      @if (showGuidedPanel && focusedElement; as element) {
+        <section class="element-details-panel">
+          <ng-container *ngTemplateOutlet="elementDetails; context: { $implicit: element }"></ng-container>
+        </section>
+      }
     </div>
   } @else if (!loading && !displayInspection) {
     <div class="preview-empty">
-      <p>Enter a start URL and load a preview to browse classified elements.</p>
+      <p>Load page preview to inspect elements.</p>
+      @if (showControls && url.trim()) {
+        <button type="button" class="btn primary" (click)="loadPreview()" [disabled]="apiUnavailable">Load page preview</button>
+      }
     </div>
   }
 </section>
+
+<ng-template #elementDetails let-element>
+  <div class="element-explanation card-lite">
+    <div class="explanation-top">
+      <div class="explanation-heading">
+        <p class="eyebrow">{{ categoryLabel(element) }}</p>
+        <h4>{{ displayLabel(element) }}</h4>
+      </div>
+      <span class="importance-badge" [ngClass]="importanceClass(element)">
+        {{ importanceLabel(element.importance) }} importance
+      </span>
+    </div>
+    <p class="explanation-copy">{{ element.explanation || element.businessMeaning || 'Interactive element on the page.' }}</p>
+    @if (actionsLabel(element)) {
+      <p class="suggested-actions"><strong>Suggested:</strong> {{ actionsLabel(element) }}</p>
+    }
+    <details class="developer-details">
+      <summary>Developer details</summary>
+      <pre class="dev-details">{{ element.selector }}</pre>
+    </details>
+  </div>
+</ng-template>

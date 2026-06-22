@@ -132,3 +132,49 @@ input:focus {
   border-color: var(--primary);
   color: var(--primary);
 }
+
+app-scenario-smart-flow .results-section,
+app-scenario-smart-flow .preview-tab-section {
+  width: 100%;
+  min-width: 0;
+}
+
+app-scenario-smart-flow .preview-tab-section app-page-preview-picker {
+  display: block;
+  width: 100%;
+}
+
+app-scenario-smart-flow .preview-tab-empty {
+  padding: 2rem 1.25rem;
+  text-align: center;
+}
+
+app-scenario-smart-flow .analyzer-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+app-scenario-smart-flow .analyzer-tabs button {
+  border: 1px solid var(--border);
+  background: #fff;
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 0.88rem;
+}
+
+app-scenario-smart-flow .analyzer-tabs button.active {
+  border-color: var(--primary);
+  background: #eff6ff;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+app-scenario-smart-flow .section-top-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
